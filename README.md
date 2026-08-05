@@ -107,7 +107,6 @@ npm test
 Mainnet deployment is a two-contract sequence: deploy the reviewed poll blueprint, then deploy the immutable factory pointing to it. The deploy script verifies the chain, the factory's blueprint reference, and every initial creator before writing a deployment record.
 
 ```sh
-cp .env.example .env
 # Load MAINNET_RPC_URL and DEPLOYER_PRIVATE_KEY into the environment without printing them.
 uv run python scripts/deploy.py \
   --creator 0xFirstTrustedMultisig \
