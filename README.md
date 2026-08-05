@@ -1,6 +1,6 @@
-# veCRV Polls
+# veCRV Choice Poll
 
-veCRV Polls is a small preference system for questions with more than two answers. A veCRV holder can put all of their voting power behind one choice or split it across several choices in a single vote.
+veCRV Choice Poll is a small preference system for questions with more than two answers. A veCRV holder can put all of their voting power behind one choice or split it across several choices in a single vote.
 
 A poll records what voters prefer. It does not make protocol changes by itself; any change still follows Curve's normal governance process.
 
