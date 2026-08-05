@@ -40,7 +40,7 @@ type Poll = {
   snapshotBlock: bigint;
   snapshotSupply: bigint;
   quorumBps: number;
-  participatingWeight: bigint;
+  votedSupply: bigint;
   labels: string[];
   scores: bigint[];
   hasVoted: boolean;
@@ -78,10 +78,10 @@ function veCrvScore(value: bigint) {
   }).format(formatted);
 }
 
-function participationPercent(participating: bigint, supply: bigint) {
+function participationPercent(voted: bigint, supply: bigint) {
   return supply === 0n
     ? 0
-    : Number((participating * 10_000n) / supply) / 100;
+    : Number((voted * 10_000n) / supply) / 100;
 }
 
 function phaseName(now: bigint, startTime: bigint, endTime: bigint): Poll["phase"] {
@@ -104,9 +104,10 @@ async function readPoll(
   id: bigint,
   address: Address,
   account: Address | null,
+  blockNumber: bigint,
   blockTimestamp: bigint,
 ) {
-  const contract = { address, abi: pollAbi } as const;
+  const contract = { address, abi: pollAbi, blockNumber } as const;
   const [
     title,
     startTime,
@@ -116,7 +117,7 @@ async function readPoll(
     quorumBps,
     choices,
     winner,
-    participatingWeight,
+    votedSupply,
     hasVoted,
   ] = await Promise.all([
     publicClient.readContract({ ...contract, functionName: "title" }),
@@ -127,7 +128,7 @@ async function readPoll(
     publicClient.readContract({ ...contract, functionName: "quorum_bps" }),
     publicClient.readContract({ ...contract, functionName: "choices" }),
     publicClient.readContract({ ...contract, functionName: "winner" }),
-    publicClient.readContract({ ...contract, functionName: "participating_weight" }),
+    publicClient.readContract({ ...contract, functionName: "voted_supply" }),
     account
       ? publicClient.readContract({
           ...contract,
@@ -138,7 +139,7 @@ async function readPoll(
   ]);
 
   const quorumMet =
-    participatingWeight * 10_000n >= snapshotSupply * BigInt(quorumBps);
+    votedSupply * 10_000n >= snapshotSupply * BigInt(quorumBps);
 
   return {
     id,
@@ -149,7 +150,7 @@ async function readPoll(
     snapshotBlock,
     snapshotSupply,
     quorumBps: Number(quorumBps),
-    participatingWeight,
+    votedSupply,
     labels: [...choices[0]],
     scores: [...choices[1]],
     hasVoted,
@@ -183,6 +184,7 @@ export default function Home() {
         address: FACTORY_ADDRESS,
         abi: factoryAbi,
         functionName: "poll_count",
+        blockNumber: block.number,
       });
       const first = count > MAX_POLLS ? count - MAX_POLLS : 0n;
       const ids = Array.from(
@@ -196,12 +198,19 @@ export default function Home() {
             abi: factoryAbi,
             functionName: "polls",
             args: [id],
+            blockNumber: block.number,
           }),
         ),
       );
       const next = await Promise.all(
         addresses.map((address, index) =>
-          readPoll(ids[index], address, wallet.account, block.timestamp),
+          readPoll(
+            ids[index],
+            address,
+            wallet.account,
+            block.number,
+            block.timestamp,
+          ),
         ),
       );
       setPolls(next);
@@ -437,13 +446,13 @@ export default function Home() {
                   </div>
                   <div>
                     <dt>Voted supply</dt>
-                    <dd>{veCrv(selected.participatingWeight)} veCRV</dd>
+                    <dd>{veCrv(selected.votedSupply)} veCRV</dd>
                   </div>
                   <div>
                     <dt>Quorum</dt>
                     <dd className={selected.quorumMet ? "met" : undefined}>
                       {participationPercent(
-                        selected.participatingWeight,
+                        selected.votedSupply,
                         selected.snapshotSupply,
                       ).toFixed(2)}% /{" "}
                       {(selected.quorumBps / 100).toFixed(2).replace(/\.00$/, "")}% req.
@@ -552,13 +561,15 @@ function Results({ poll }: { poll: Poll }) {
     [poll.scores],
   );
   const resultHeading =
-    poll.phase !== "closed"
-      ? "Voting in progress"
-      : !poll.quorumMet
-        ? "Quorum not met"
-        : poll.hasWinner
-          ? `Winner: ${poll.labels[poll.winnerId]}`
-          : "Result: tie";
+    poll.phase === "upcoming"
+      ? "Voting has not started"
+      : poll.phase === "active"
+        ? "Voting in progress"
+        : !poll.quorumMet
+          ? "Quorum not met"
+          : poll.hasWinner
+            ? `Winner: ${poll.labels[poll.winnerId]}`
+            : "Result: tie";
 
   return (
     <div className="results-section">
@@ -572,8 +583,12 @@ function Results({ poll }: { poll: Poll }) {
         {poll.labels.map((label, index) => {
           const score = poll.scores[index];
           const share = totalScore === 0n ? 0 : Number((score * 10_000n) / totalScore) / 100;
+          const isWinner = poll.hasWinner && poll.winnerId === index;
           return (
-            <div className="result-row" key={`${index}-${label}`}>
+            <div
+              className={isWinner ? "result-row winner" : "result-row"}
+              key={`${index}-${label}`}
+            >
               <div className="result-copy">
                 <span>{label}</span>
                 <span>{share.toFixed(2)}% · {veCrvScore(score)} veCRV</span>

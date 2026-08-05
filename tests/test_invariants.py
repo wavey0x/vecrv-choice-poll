@@ -18,7 +18,7 @@ def test_aggregate_score_invariant(system, create_poll, weights, first, second):
     with boa.env.anchor():
         poll = create_poll(choices=["A", "B", "C"])
         expected = [0, 0, 0]
-        participating = 0
+        voted_supply = 0
 
         for index in range(count):
             voter = boa.env.generate_address()
@@ -31,11 +31,11 @@ def test_aggregate_score_invariant(system, create_poll, weights, first, second):
             with boa.env.prank(voter):
                 poll.vote(allocation)
 
-            participating += weight
+            voted_supply += weight
             for choice_id in range(3):
                 expected[choice_id] += weight * allocation[choice_id]
 
-        scores = [poll.choice_scores(i) for i in range(3)]
-        assert poll.participating_weight() == participating
+        scores = poll.choices()[1]
+        assert poll.voted_supply() == voted_supply
         assert scores == expected
-        assert sum(scores) == participating * 10_000
+        assert sum(scores) == voted_supply * 10_000

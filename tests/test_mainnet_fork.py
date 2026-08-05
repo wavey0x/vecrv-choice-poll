@@ -42,4 +42,4 @@ def test_poll_reads_canonical_voting_escrow_on_fixed_mainnet_fork():
 
     with boa.env.prank(CONVEX_VOTER_PROXY):
         poll.vote([10_000, 0])
-    assert poll.participating_weight() == expected_weight
+    assert poll.voted_supply() == expected_weight

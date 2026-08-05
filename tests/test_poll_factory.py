@@ -151,8 +151,8 @@ def test_created_polls_have_independent_storage(system, create_poll):
     with boa.env.prank(system.accounts.voter):
         first.vote([10_000, 0])
 
-    assert first.participating_weight() == weight
-    assert second.participating_weight() == 0
+    assert first.voted_supply() == weight
+    assert second.voted_supply() == 0
     assert not second.has_voted(system.accounts.voter)
-    assert first.choice_name(0) == "A"
-    assert second.choice_name(0) == "C"
+    assert first.choices()[0] == ["A", "B"]
+    assert second.choices()[0] == ["C", "D", "E"]
