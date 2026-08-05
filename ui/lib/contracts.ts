@@ -44,7 +44,7 @@ export const pollAbi = [
   },
   {
     type: "function",
-    name: "voted_supply",
+    name: "participating_weight",
     stateMutability: "view",
     inputs: [],
     outputs: [{ name: "", type: "uint256" }],

@@ -21,11 +21,12 @@ end_time: public(uint256)
 snapshot_block: public(uint256)
 snapshot_supply: public(uint256)
 quorum_bps: public(uint16)
+choice_count: public(uint16)
 
 choice_labels: DynArray[String[64], MAX_CHOICES]
 has_voted: public(HashMap[address, bool])
-choice_scores: uint256[MAX_CHOICES]
-voted_supply: public(uint256)
+choice_scores: public(uint256[MAX_CHOICES])
+participating_weight: public(uint256)
 
 
 @deploy
@@ -71,7 +72,20 @@ def __init__(
     self.snapshot_block = snapshot_block
     self.snapshot_supply = snapshot_supply
     self.quorum_bps = quorum_bps_
+    self.choice_count = convert(len(choice_names_), uint16)
     self.choice_labels = choice_names_
+
+
+@external
+@view
+def choice_name(choice_id: uint16) -> String[64]:
+    """
+    @notice Return the label for a choice.
+    @param choice_id Zero-based choice ID.
+    @return Choice label.
+    """
+    assert choice_id < self.choice_count, "invalid choice"
+    return self.choice_labels[convert(choice_id, uint256)]
 
 
 @external
@@ -84,7 +98,7 @@ def choices() -> (DynArray[String[64], MAX_CHOICES], DynArray[uint256, MAX_CHOIC
     """
     scores: DynArray[uint256, MAX_CHOICES] = []
     for i: uint256 in range(MAX_CHOICES):
-        if i == len(self.choice_labels):
+        if i == convert(self.choice_count, uint256):
             break
         scores.append(self.choice_scores[i])
     return self.choice_labels, scores
@@ -99,7 +113,7 @@ def vote(allocations_bps: DynArray[uint16, MAX_CHOICES]):
     assert block.timestamp >= self.start_time, "not started"
     assert block.timestamp < self.end_time, "ended"
     assert not self.has_voted[msg.sender], "already voted"
-    assert len(allocations_bps) == len(self.choice_labels), "wrong length"
+    assert len(allocations_bps) == convert(self.choice_count, uint256), "wrong length"
 
     allocation_total: uint256 = 0
     for i: uint256 in range(MAX_CHOICES):
@@ -117,7 +131,7 @@ def vote(allocations_bps: DynArray[uint16, MAX_CHOICES]):
     assert weight > 0, "no voting power"
 
     self.has_voted[msg.sender] = True
-    self.voted_supply += weight
+    self.participating_weight += weight
 
     for i: uint256 in range(MAX_CHOICES):
         if i == len(allocations_bps):
@@ -136,14 +150,14 @@ def vote(allocations_bps: DynArray[uint16, MAX_CHOICES]):
 @internal
 @view
 def _quorum_reached() -> bool:
-    return self.voted_supply * BPS >= self.snapshot_supply * convert(self.quorum_bps, uint256)
+    return self.participating_weight * BPS >= self.snapshot_supply * convert(self.quorum_bps, uint256)
 
 
 @external
 @view
 def quorum_reached() -> bool:
     """
-    @notice Report whether voted supply meets the quorum.
+    @notice Report whether participating voting power meets the quorum.
     @return True when the quorum has been reached.
     """
     return self._quorum_reached()
@@ -165,7 +179,7 @@ def winner() -> (bool, uint16):
     tied: bool = False
 
     for i: uint256 in range(1, MAX_CHOICES):
-        if i == len(self.choice_labels):
+        if i == convert(self.choice_count, uint256):
             break
         score: uint256 = self.choice_scores[i]
         if score > winning_score:

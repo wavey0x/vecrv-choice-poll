@@ -2,13 +2,21 @@ import boa
 import pytest
 
 
-def test_choices_are_contiguous_and_stable(create_poll):
+def test_choice_ids_are_contiguous_and_stable(create_poll):
     poll = create_poll(choices=["No award", "LlamaRisk", "ChainSecurity"])
 
+    assert poll.choice_count() == 3
+    assert [poll.choice_name(i) for i in range(3)] == [
+        "No award",
+        "LlamaRisk",
+        "ChainSecurity",
+    ]
     assert poll.choices() == (
         ["No award", "LlamaRisk", "ChainSecurity"],
         [0, 0, 0],
     )
+    with boa.reverts("invalid choice"):
+        poll.choice_name(3)
 
 
 @pytest.mark.parametrize(

@@ -45,10 +45,10 @@ Scores are stored without rounding:
 
 ```text
 choice score contribution = snapshot veCRV × allocated basis points
-sum of all choice scores = voted veCRV × 10,000
+sum of all choice scores = participating veCRV × 10,000
 ```
 
-`choices()` is the canonical choice read and returns every label with its current score. `start_time` and `end_time` define the phase, `voted_supply` tracks the snapshot veCRV that has voted, and `quorum_reached()` reports whether it meets the threshold. Non-reverting `winner()` returns `(True, choice_id)` only for a unique final winner. Choice IDs are zero-based; the returned ID is meaningful only when the boolean is true.
+`choices()` returns every label with its current score. `start_time` and `end_time` define the phase, `quorum_reached()` reports whether participation meets the threshold, and non-reverting `winner()` returns `(True, choice_id)` only for a unique final winner. Choice IDs are zero-based; the returned ID is meaningful only when the boolean is true.
 
 Each nonzero allocation emits one `Vote` event. A split vote therefore emits multiple `Vote` events in the same transaction, all with the voter's full snapshot weight.
 

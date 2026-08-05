@@ -11,12 +11,17 @@ def test_exact_split_accounting(system, create_poll):
         poll.vote([2_500, 3_000, 4_500])
 
     assert poll.has_voted(voter)
-    assert poll.voted_supply() == weight
+    assert poll.participating_weight() == weight
+    assert [poll.choice_scores(i) for i in range(3)] == [
+        weight * 2_500,
+        weight * 3_000,
+        weight * 4_500,
+    ]
     assert poll.choices() == (
         ["No award", "Team A", "Team B"],
         [weight * 2_500, weight * 3_000, weight * 4_500],
     )
-    assert sum(poll.choices()[1]) == weight * 10_000
+    assert sum(poll.choice_scores(i) for i in range(3)) == weight * 10_000
 
 
 def test_vote_emits_one_event_per_nonzero_allocation(system, create_poll):
@@ -122,4 +127,4 @@ def test_snapshot_weight_is_immutable(system, create_poll):
     with boa.env.prank(voter):
         poll.vote([0, 10_000, 0])
 
-    assert poll.voted_supply() == historical_weight
+    assert poll.participating_weight() == historical_weight
