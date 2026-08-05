@@ -9,7 +9,7 @@ A poll records what voters prefer. It does not make protocol changes by itself; 
 ```mermaid
 flowchart LR
     Creators([Approved Curve creators]) -->|create| Factory[Poll factory]
-    Factory --> Polls[Immutable polls]
+    Factory --> Polls@{ shape: processes, label: "Immutable polls" }
     Voters([veCRV voters]) -->|read and vote| Polls
 ```
 
