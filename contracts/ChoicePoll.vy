@@ -36,6 +36,14 @@ def __init__(
     quorum_bps_: uint16,
     choice_names_: DynArray[String[64], MAX_CHOICES],
 ):
+    """
+    @notice Create an immutable poll and snapshot the veCRV supply.
+    @param title_ Poll title.
+    @param start_time_ Unix timestamp when voting opens.
+    @param end_time_ Unix timestamp when voting closes.
+    @param quorum_bps_ Required participation in basis points, where 10,000 is 100%.
+    @param choice_names_ Choice labels in choice ID order.
+    """
     assert len(title_) > 0, "empty title"
     assert start_time_ >= block.timestamp, "start in past"
     assert end_time_ > start_time_, "invalid window"
@@ -70,6 +78,11 @@ def __init__(
 @external
 @view
 def choice_name(choice_id: uint16) -> String[64]:
+    """
+    @notice Return the label for a choice.
+    @param choice_id Zero-based choice ID.
+    @return Choice label.
+    """
     assert choice_id < self.choice_count, "invalid choice"
     return self.choice_labels[convert(choice_id, uint256)]
 
@@ -77,6 +90,11 @@ def choice_name(choice_id: uint16) -> String[64]:
 @external
 @view
 def choices() -> (DynArray[String[64], MAX_CHOICES], DynArray[uint256, MAX_CHOICES]):
+    """
+    @notice Return every choice and its current score.
+    @return Choice labels in choice ID order.
+    @return Scores as snapshot veCRV multiplied by allocated basis points.
+    """
     scores: DynArray[uint256, MAX_CHOICES] = []
     for i: uint256 in range(MAX_CHOICES):
         if i == convert(self.choice_count, uint256):
@@ -87,6 +105,10 @@ def choices() -> (DynArray[String[64], MAX_CHOICES], DynArray[uint256, MAX_CHOIC
 
 @external
 def vote(allocations_bps: DynArray[uint16, MAX_CHOICES]):
+    """
+    @notice Allocate the caller's snapshot voting power across all choices.
+    @param allocations_bps Allocations in choice ID order, totaling 10,000.
+    """
     assert block.timestamp >= self.start_time, "not started"
     assert block.timestamp < self.end_time, "ended"
     assert not self.has_voted[msg.sender], "already voted"
@@ -133,12 +155,21 @@ def _quorum_reached() -> bool:
 @external
 @view
 def quorum_reached() -> bool:
+    """
+    @notice Report whether participating voting power meets the quorum.
+    @return True when the quorum has been reached.
+    """
     return self._quorum_reached()
 
 
 @external
 @view
 def winner() -> (bool, uint16):
+    """
+    @notice Return the unique final winner, if one exists.
+    @return True only after a quorum-backed, untied poll has closed.
+    @return Zero-based winner ID, valid only when the first value is true.
+    """
     if block.timestamp < self.end_time or not self._quorum_reached():
         return False, 0
 

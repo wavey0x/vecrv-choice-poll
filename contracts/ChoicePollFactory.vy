@@ -29,6 +29,11 @@ def __init__(
     poll_blueprint: address,
     initial_creators: DynArray[address, MAX_INITIAL_CREATORS],
 ):
+    """
+    @notice Create a factory for the supplied poll blueprint.
+    @param poll_blueprint ERC-5202 ChoicePoll blueprint address.
+    @param initial_creators Addresses initially allowed to create polls.
+    """
     assert poll_blueprint != empty(address), "zero blueprint"
     assert poll_blueprint.is_contract, "invalid blueprint"
     assert len(initial_creators) > 0, "no creators"
@@ -54,11 +59,20 @@ def __init__(
 @external
 @view
 def poll_blueprint() -> address:
+    """
+    @notice Return the blueprint used to deploy polls.
+    @return ChoicePoll blueprint address.
+    """
     return POLL_BLUEPRINT
 
 
 @external
 def set_creator(creator: address, approved: bool):
+    """
+    @notice Update a poll creator's approval.
+    @param creator Address whose approval is being updated.
+    @param approved New approval state.
+    """
     assert msg.sender == CURVE_OWNERSHIP_AGENT, "not agent"
     assert creator != empty(address), "zero creator"
     assert creator != CURVE_OWNERSHIP_AGENT, "agent permanent"
@@ -76,6 +90,15 @@ def create_poll(
     start_time: uint256 = 0,
     end_time: uint256 = 0,
 ) -> address:
+    """
+    @notice Create and register a poll.
+    @param title Poll title.
+    @param quorum_bps Required participation in basis points, where 10,000 is 100%.
+    @param choice_names Choice labels in choice ID order.
+    @param start_time Opening timestamp, or zero to start immediately.
+    @param end_time Closing timestamp, or zero for the default duration.
+    @return Deployed poll address.
+    """
     assert self.approved_creators[msg.sender], "not creator"
 
     resolved_start: uint256 = start_time
