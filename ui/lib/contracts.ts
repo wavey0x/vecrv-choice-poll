@@ -8,9 +8,9 @@ export const factoryAbi = [
   },
   {
     type: "function",
-    name: "polls",
+    name: "poll_address",
     stateMutability: "view",
-    inputs: [{ name: "arg0", type: "uint256" }],
+    inputs: [{ name: "poll_id", type: "uint256" }],
     outputs: [{ name: "", type: "address" }],
   },
 ] as const;
@@ -44,7 +44,7 @@ export const pollAbi = [
   },
   {
     type: "function",
-    name: "participating_weight",
+    name: "voted_supply",
     stateMutability: "view",
     inputs: [],
     outputs: [{ name: "", type: "uint256" }],
@@ -53,7 +53,7 @@ export const pollAbi = [
     type: "function",
     name: "has_voted",
     stateMutability: "view",
-    inputs: [{ name: "arg0", type: "address" }],
+    inputs: [{ name: "voter", type: "address" }],
     outputs: [{ name: "", type: "bool" }],
   },
   {

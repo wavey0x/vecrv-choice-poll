@@ -11,12 +11,15 @@ def test_choice_ids_are_contiguous_and_stable(create_poll):
         "LlamaRisk",
         "ChainSecurity",
     ]
+    assert [poll.choice_score(i) for i in range(3)] == [0, 0, 0]
     assert poll.choices() == (
         ["No award", "LlamaRisk", "ChainSecurity"],
         [0, 0, 0],
     )
     with boa.reverts("invalid choice"):
         poll.choice_name(3)
+    with boa.reverts("invalid choice"):
+        poll.choice_score(3)
 
 
 @pytest.mark.parametrize(

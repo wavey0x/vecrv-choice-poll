@@ -20,7 +20,7 @@ event PollCreated:
 POLL_BLUEPRINT: immutable(address)
 
 poll_count: public(uint256)
-polls: public(HashMap[uint256, address])
+poll_addresses: HashMap[uint256, address]
 approved_creators: public(HashMap[address, bool])
 
 
@@ -64,6 +64,18 @@ def poll_blueprint() -> address:
     @return ChoicePoll blueprint address.
     """
     return POLL_BLUEPRINT
+
+
+@external
+@view
+def poll_address(poll_id: uint256) -> address:
+    """
+    @notice Return a registered poll address.
+    @param poll_id Zero-based factory poll ID.
+    @return Deployed poll address.
+    """
+    assert poll_id < self.poll_count, "invalid poll"
+    return self.poll_addresses[poll_id]
 
 
 @external
@@ -121,7 +133,7 @@ def create_poll(
     )
 
     poll_id: uint256 = self.poll_count
-    self.polls[poll_id] = poll
+    self.poll_addresses[poll_id] = poll
     self.poll_count = poll_id + 1
 
     log PollCreated(poll_id=poll_id, poll=poll, creator=msg.sender)

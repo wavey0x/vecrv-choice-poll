@@ -40,7 +40,7 @@ type Poll = {
   snapshotBlock: bigint;
   snapshotSupply: bigint;
   quorumBps: number;
-  participatingWeight: bigint;
+  votedSupply: bigint;
   labels: string[];
   scores: bigint[];
   hasVoted: boolean;
@@ -78,10 +78,10 @@ function veCrvScore(value: bigint) {
   }).format(formatted);
 }
 
-function participationPercent(participating: bigint, supply: bigint) {
+function participationPercent(voted: bigint, supply: bigint) {
   return supply === 0n
     ? 0
-    : Number((participating * 10_000n) / supply) / 100;
+    : Number((voted * 10_000n) / supply) / 100;
 }
 
 function phaseName(now: bigint, startTime: bigint, endTime: bigint): Poll["phase"] {
@@ -116,7 +116,7 @@ async function readPoll(
     quorumBps,
     choices,
     winner,
-    participatingWeight,
+    votedSupply,
     hasVoted,
   ] = await Promise.all([
     publicClient.readContract({ ...contract, functionName: "title" }),
@@ -127,7 +127,7 @@ async function readPoll(
     publicClient.readContract({ ...contract, functionName: "quorum_bps" }),
     publicClient.readContract({ ...contract, functionName: "choices" }),
     publicClient.readContract({ ...contract, functionName: "winner" }),
-    publicClient.readContract({ ...contract, functionName: "participating_weight" }),
+    publicClient.readContract({ ...contract, functionName: "voted_supply" }),
     account
       ? publicClient.readContract({
           ...contract,
@@ -138,7 +138,7 @@ async function readPoll(
   ]);
 
   const quorumMet =
-    participatingWeight * 10_000n >= snapshotSupply * BigInt(quorumBps);
+    votedSupply * 10_000n >= snapshotSupply * BigInt(quorumBps);
 
   return {
     id,
@@ -149,7 +149,7 @@ async function readPoll(
     snapshotBlock,
     snapshotSupply,
     quorumBps: Number(quorumBps),
-    participatingWeight,
+    votedSupply,
     labels: [...choices[0]],
     scores: [...choices[1]],
     hasVoted,
@@ -194,7 +194,7 @@ export default function Home() {
           publicClient.readContract({
             address: FACTORY_ADDRESS,
             abi: factoryAbi,
-            functionName: "polls",
+            functionName: "poll_address",
             args: [id],
           }),
         ),
@@ -449,13 +449,13 @@ export default function Home() {
                   </div>
                   <div>
                     <dt>Voted supply</dt>
-                    <dd>{veCrv(selected.participatingWeight)} veCRV</dd>
+                    <dd>{veCrv(selected.votedSupply)} veCRV</dd>
                   </div>
                   <div>
                     <dt>Quorum</dt>
                     <dd className={selected.quorumMet ? "met" : undefined}>
                       {participationPercent(
-                        selected.participatingWeight,
+                        selected.votedSupply,
                         selected.snapshotSupply,
                       ).toFixed(2)}% /{" "}
                       {(selected.quorumBps / 100).toFixed(2).replace(/\.00$/, "")}% req.

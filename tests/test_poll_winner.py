@@ -46,7 +46,7 @@ def test_quorum_counts_full_voter_weight_for_any_split(system, create_poll):
     _vote(system, poll, system.accounts.voter, 100, [1, 9_999])
 
     assert poll.quorum_reached()
-    assert poll.participating_weight() == 100
+    assert poll.voted_supply() == 100
 
 
 def test_quorum_failure_has_no_winner(system, create_poll):
