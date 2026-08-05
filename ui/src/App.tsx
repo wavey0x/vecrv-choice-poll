@@ -132,7 +132,7 @@ async function readPoll(
   ]);
 
   const quorumMet =
-    participatingWeight * 10_000n >= referenceSupply * quorumBps;
+    participatingWeight * 10_000n >= referenceSupply * BigInt(quorumBps);
 
   return {
     id,
