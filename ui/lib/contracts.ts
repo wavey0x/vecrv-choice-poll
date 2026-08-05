@@ -34,21 +34,12 @@ export const pollAbi = [
   },
   {
     type: "function",
-    name: "status",
+    name: "winner",
     stateMutability: "view",
     inputs: [],
     outputs: [
-      {
-        name: "",
-        type: "tuple",
-        components: [
-          { name: "phase", type: "uint8" },
-          { name: "quorum_met", type: "bool" },
-          { name: "tied", type: "bool" },
-          { name: "has_winner", type: "bool" },
-          { name: "winner_id", type: "uint16" },
-        ],
-      },
+      { name: "", type: "bool" },
+      { name: "", type: "uint16" },
     ],
   },
   {

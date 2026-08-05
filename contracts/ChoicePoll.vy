@@ -9,17 +9,6 @@ VOTING_ESCROW: constant(address) = 0x5f3b5DfEb7B28CDbD7FAba78963EE202a494e2A2
 MAX_CHOICES: constant(uint256) = 64
 BPS: constant(uint256) = 10_000
 
-PHASE_UPCOMING: constant(uint8) = 0
-PHASE_ACTIVE: constant(uint8) = 1
-PHASE_CLOSED: constant(uint8) = 2
-
-struct PollStatus:
-    phase: uint8
-    quorum_met: bool
-    tied: bool
-    has_winner: bool
-    winner_id: uint16
-
 event VoteCast:
     voter: indexed(address)
     voter_weight: uint256
@@ -149,32 +138,9 @@ def quorum_reached() -> bool:
 
 @external
 @view
-def status() -> PollStatus:
-    quorum_met: bool = self._quorum_reached()
-    if block.timestamp < self.start_time:
-        return PollStatus(
-            phase=PHASE_UPCOMING,
-            quorum_met=quorum_met,
-            tied=False,
-            has_winner=False,
-            winner_id=0,
-        )
-    if block.timestamp < self.end_time:
-        return PollStatus(
-            phase=PHASE_ACTIVE,
-            quorum_met=quorum_met,
-            tied=False,
-            has_winner=False,
-            winner_id=0,
-        )
-    if not quorum_met:
-        return PollStatus(
-            phase=PHASE_CLOSED,
-            quorum_met=False,
-            tied=False,
-            has_winner=False,
-            winner_id=0,
-        )
+def winner() -> (bool, uint16):
+    if block.timestamp < self.end_time or not self._quorum_reached():
+        return False, 0
 
     winning_id: uint16 = 0
     winning_score: uint256 = self.choice_scores[0]
@@ -191,10 +157,6 @@ def status() -> PollStatus:
         elif score == winning_score:
             tied = True
 
-    return PollStatus(
-        phase=PHASE_CLOSED,
-        quorum_met=True,
-        tied=tied,
-        has_winner=not tied,
-        winner_id=winning_id,
-    )
+    if tied:
+        return False, 0
+    return True, winning_id

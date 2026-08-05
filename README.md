@@ -48,7 +48,7 @@ choice score contribution = snapshot veCRV × allocated basis points
 sum of all choice scores = participating veCRV × 10,000
 ```
 
-`choices()` returns every label with its current score, while non-reverting `status()` reports the phase, quorum, tie, and final winner.
+`choices()` returns every label with its current score. `start_time` and `end_time` define the phase, `quorum_reached()` reports whether participation meets the threshold, and non-reverting `winner()` returns `(True, choice_id)` only for a unique final winner. Choice IDs are zero-based; the returned ID is meaningful only when the boolean is true.
 
 The contracts hold no assets, make no arbitrary calls, have no upgrade path, and cannot make protocol changes.
 

@@ -46,7 +46,6 @@ type Poll = {
   hasVoted: boolean;
   phase: "upcoming" | "active" | "closed";
   quorumMet: boolean;
-  tied: boolean;
   hasWinner: boolean;
   winnerId: number;
 };
@@ -79,9 +78,9 @@ function veCrvScore(value: bigint) {
   }).format(formatted);
 }
 
-function phaseName(phase: number): Poll["phase"] {
-  if (phase === 0) return "upcoming";
-  if (phase === 1) return "active";
+function phaseName(now: bigint, startTime: bigint, endTime: bigint): Poll["phase"] {
+  if (now < startTime) return "upcoming";
+  if (now < endTime) return "active";
   return "closed";
 }
 
@@ -95,7 +94,12 @@ function readableError(error: unknown) {
   return "The request could not be completed.";
 }
 
-async function readPoll(id: bigint, address: Address, account: Address | null) {
+async function readPoll(
+  id: bigint,
+  address: Address,
+  account: Address | null,
+  blockTimestamp: bigint,
+) {
   const contract = { address, abi: pollAbi } as const;
   const [
     title,
@@ -105,7 +109,7 @@ async function readPoll(id: bigint, address: Address, account: Address | null) {
     referenceSupply,
     quorumBps,
     choices,
-    chainStatus,
+    winner,
     participatingWeight,
     hasVoted,
   ] = await Promise.all([
@@ -116,7 +120,7 @@ async function readPoll(id: bigint, address: Address, account: Address | null) {
     publicClient.readContract({ ...contract, functionName: "reference_supply" }),
     publicClient.readContract({ ...contract, functionName: "quorum_bps" }),
     publicClient.readContract({ ...contract, functionName: "choices" }),
-    publicClient.readContract({ ...contract, functionName: "status" }),
+    publicClient.readContract({ ...contract, functionName: "winner" }),
     publicClient.readContract({ ...contract, functionName: "participating_weight" }),
     account
       ? publicClient.readContract({
@@ -126,6 +130,9 @@ async function readPoll(id: bigint, address: Address, account: Address | null) {
         })
       : Promise.resolve(false),
   ]);
+
+  const quorumMet =
+    participatingWeight * 10_000n >= referenceSupply * quorumBps;
 
   return {
     id,
@@ -140,11 +147,10 @@ async function readPoll(id: bigint, address: Address, account: Address | null) {
     labels: [...choices[0]],
     scores: [...choices[1]],
     hasVoted,
-    phase: phaseName(Number(chainStatus.phase)),
-    quorumMet: chainStatus.quorum_met,
-    tied: chainStatus.tied,
-    hasWinner: chainStatus.has_winner,
-    winnerId: Number(chainStatus.winner_id),
+    phase: phaseName(blockTimestamp, startTime, endTime),
+    quorumMet,
+    hasWinner: winner[0],
+    winnerId: Number(winner[1]),
   } satisfies Poll;
 }
 
@@ -166,6 +172,7 @@ export default function Home() {
     if (!FACTORY_ADDRESS) return;
     setLoadError(null);
     try {
+      const block = await publicClient.getBlock();
       const count = await publicClient.readContract({
         address: FACTORY_ADDRESS,
         abi: factoryAbi,
@@ -188,7 +195,7 @@ export default function Home() {
       );
       const next = await Promise.all(
         addresses.map((address, index) =>
-          readPoll(ids[index], address, wallet.account),
+          readPoll(ids[index], address, wallet.account, block.timestamp),
         ),
       );
       setPolls(next);
@@ -541,11 +548,9 @@ function Results({ poll }: { poll: Poll }) {
       ? `${veCrv(poll.participatingWeight)} veCRV participating`
       : !poll.quorumMet
         ? "Quorum not met"
-        : poll.tied
-          ? "Result: tie"
-          : poll.hasWinner
-            ? `Winner: ${poll.labels[poll.winnerId]}`
-            : "No winner";
+        : poll.hasWinner
+          ? `Winner: ${poll.labels[poll.winnerId]}`
+          : "Result: tie";
 
   return (
     <div className="results-section">
