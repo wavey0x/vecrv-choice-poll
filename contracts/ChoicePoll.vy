@@ -9,10 +9,11 @@ VOTING_ESCROW: constant(address) = 0x5f3b5DfEb7B28CDbD7FAba78963EE202a494e2A2
 MAX_CHOICES: constant(uint256) = 64
 BPS: constant(uint256) = 10_000
 
-event VoteCast:
+event Vote:
     voter: indexed(address)
-    voter_weight: uint256
-    allocations_hash: bytes32
+    choice_id: indexed(uint16)
+    allocation_bps: uint16
+    weight: uint256
 
 title: public(String[64])
 start_time: public(uint256)
@@ -138,12 +139,12 @@ def vote(allocations_bps: DynArray[uint16, MAX_CHOICES]):
         allocation: uint256 = convert(allocations_bps[i], uint256)
         if allocation > 0:
             self.choice_scores[i] += weight * allocation
-
-    log VoteCast(
-        voter=msg.sender,
-        voter_weight=weight,
-        allocations_hash=keccak256(abi_encode(allocations_bps)),
-    )
+            log Vote(
+                voter=msg.sender,
+                choice_id=convert(i, uint16),
+                allocation_bps=convert(allocation, uint16),
+                weight=weight,
+            )
 
 
 @internal

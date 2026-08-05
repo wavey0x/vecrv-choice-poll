@@ -24,6 +24,26 @@ def test_exact_split_accounting(system, create_poll):
     assert sum(poll.choice_scores(i) for i in range(3)) == weight * 10_000
 
 
+def test_vote_emits_one_event_per_nonzero_allocation(system, create_poll):
+    poll = create_poll()
+    voter = system.accounts.voter
+    weight = 125 * 10**18
+    system.mock.set_balance_at(voter, poll.snapshot_block(), weight)
+
+    with boa.env.prank(voter):
+        poll.vote([2_500, 0, 7_500])
+
+    logs = poll.get_logs()
+    assert len(logs) == 2
+    assert [
+        (log.voter, log.choice_id, log.allocation_bps, log.weight)
+        for log in logs
+    ] == [
+        (voter, 0, 2_500, weight),
+        (voter, 2, 7_500, weight),
+    ]
+
+
 def test_second_vote_reverts(system, create_poll):
     poll = create_poll()
     voter = system.accounts.voter
