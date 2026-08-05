@@ -8,8 +8,8 @@ A ballot records what voters prefer. It does not make protocol changes by itself
 
 ```mermaid
 flowchart LR
-    Creators([Approved Curve creators]) -->|create| Factory[[Ballot factory]]
-    Factory --> Ballots[[Immutable ballots]]
+    Creators([Approved Curve creators]) -->|create| Factory[Ballot factory]
+    Factory --> Ballots[Immutable ballots]
     Voters([veCRV voters]) -->|read and vote| Ballots
 ```
 
