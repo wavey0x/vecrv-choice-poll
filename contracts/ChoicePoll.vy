@@ -17,8 +17,8 @@ event VoteCast:
 title: public(String[64])
 start_time: public(uint256)
 end_time: public(uint256)
-reference_block: public(uint256)
-reference_supply: public(uint256)
+snapshot_block: public(uint256)
+snapshot_supply: public(uint256)
 quorum_bps: public(uint16)
 choice_count: public(uint16)
 
@@ -60,8 +60,8 @@ def __init__(
     self.title = title_
     self.start_time = start_time_
     self.end_time = end_time_
-    self.reference_block = snapshot_block
-    self.reference_supply = snapshot_supply
+    self.snapshot_block = snapshot_block
+    self.snapshot_supply = snapshot_supply
     self.quorum_bps = quorum_bps_
     self.choice_count = convert(len(choice_names_), uint16)
     self.choice_labels = choice_names_
@@ -103,7 +103,7 @@ def vote(allocations_bps: DynArray[uint16, MAX_CHOICES]):
 
     weight: uint256 = staticcall IVotingEscrow(VOTING_ESCROW).balanceOfAt(
         msg.sender,
-        self.reference_block,
+        self.snapshot_block,
     )
     assert weight > 0, "no voting power"
 
@@ -127,7 +127,7 @@ def vote(allocations_bps: DynArray[uint16, MAX_CHOICES]):
 @internal
 @view
 def _quorum_reached() -> bool:
-    return self.participating_weight * BPS >= self.reference_supply * convert(self.quorum_bps, uint256)
+    return self.participating_weight * BPS >= self.snapshot_supply * convert(self.quorum_bps, uint256)
 
 
 @external

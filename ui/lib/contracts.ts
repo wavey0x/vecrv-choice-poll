@@ -19,8 +19,8 @@ export const pollAbi = [
   view("title", "string"),
   view("start_time", "uint256"),
   view("end_time", "uint256"),
-  view("reference_block", "uint256"),
-  view("reference_supply", "uint256"),
+  view("snapshot_block", "uint256"),
+  view("snapshot_supply", "uint256"),
   view("quorum_bps", "uint16"),
   {
     type: "function",

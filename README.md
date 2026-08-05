@@ -16,7 +16,7 @@ flowchart LR
 ## How a poll works
 
 1. An approved Curve multisig creates a poll with a title, choices, quorum, and voting window.
-2. The poll takes a snapshot of veCRV balances from the block immediately before creation.
+2. The poll records `snapshot_block` and `snapshot_supply` from the block immediately before creation, and uses balances from that snapshot for voting power.
 3. During the voting window, each address submits one complete allocation totaling exactly 100%.
 4. After the window closes, the highest-scoring choice wins. An exact tie has no winner.
 

@@ -2,7 +2,7 @@ import boa
 
 
 def _vote(system, poll, voter, weight, allocations):
-    system.mock.set_balance_at(voter, poll.reference_block(), weight)
+    system.mock.set_balance_at(voter, poll.snapshot_block(), weight)
     with boa.env.prank(voter):
         poll.vote(allocations)
 

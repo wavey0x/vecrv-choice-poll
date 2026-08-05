@@ -37,8 +37,8 @@ type Poll = {
   title: string;
   startTime: bigint;
   endTime: bigint;
-  referenceBlock: bigint;
-  referenceSupply: bigint;
+  snapshotBlock: bigint;
+  snapshotSupply: bigint;
   quorumBps: number;
   participatingWeight: bigint;
   labels: string[];
@@ -78,6 +78,12 @@ function veCrvScore(value: bigint) {
   }).format(formatted);
 }
 
+function participationPercent(participating: bigint, supply: bigint) {
+  return supply === 0n
+    ? 0
+    : Number((participating * 10_000n) / supply) / 100;
+}
+
 function phaseName(now: bigint, startTime: bigint, endTime: bigint): Poll["phase"] {
   if (now < startTime) return "upcoming";
   if (now < endTime) return "active";
@@ -105,8 +111,8 @@ async function readPoll(
     title,
     startTime,
     endTime,
-    referenceBlock,
-    referenceSupply,
+    snapshotBlock,
+    snapshotSupply,
     quorumBps,
     choices,
     winner,
@@ -116,8 +122,8 @@ async function readPoll(
     publicClient.readContract({ ...contract, functionName: "title" }),
     publicClient.readContract({ ...contract, functionName: "start_time" }),
     publicClient.readContract({ ...contract, functionName: "end_time" }),
-    publicClient.readContract({ ...contract, functionName: "reference_block" }),
-    publicClient.readContract({ ...contract, functionName: "reference_supply" }),
+    publicClient.readContract({ ...contract, functionName: "snapshot_block" }),
+    publicClient.readContract({ ...contract, functionName: "snapshot_supply" }),
     publicClient.readContract({ ...contract, functionName: "quorum_bps" }),
     publicClient.readContract({ ...contract, functionName: "choices" }),
     publicClient.readContract({ ...contract, functionName: "winner" }),
@@ -132,7 +138,7 @@ async function readPoll(
   ]);
 
   const quorumMet =
-    participatingWeight * 10_000n >= referenceSupply * BigInt(quorumBps);
+    participatingWeight * 10_000n >= snapshotSupply * BigInt(quorumBps);
 
   return {
     id,
@@ -140,8 +146,8 @@ async function readPoll(
     title,
     startTime,
     endTime,
-    referenceBlock,
-    referenceSupply,
+    snapshotBlock,
+    snapshotSupply,
     quorumBps: Number(quorumBps),
     participatingWeight,
     labels: [...choices[0]],
@@ -422,12 +428,26 @@ export default function Home() {
                     <dd>{timestampLabel(selected.endTime)}</dd>
                   </div>
                   <div>
-                    <dt>Snapshot</dt>
-                    <dd>{selected.referenceBlock.toLocaleString()}</dd>
+                    <dt>Snapshot block</dt>
+                    <dd>{selected.snapshotBlock.toLocaleString()}</dd>
+                  </div>
+                  <div>
+                    <dt>Snapshot supply</dt>
+                    <dd>{veCrv(selected.snapshotSupply)} veCRV</dd>
+                  </div>
+                  <div>
+                    <dt>Voted supply</dt>
+                    <dd>{veCrv(selected.participatingWeight)} veCRV</dd>
                   </div>
                   <div>
                     <dt>Quorum</dt>
-                    <dd>{(selected.quorumBps / 100).toFixed(2).replace(/\.00$/, "")}%</dd>
+                    <dd className={selected.quorumMet ? "met" : undefined}>
+                      {participationPercent(
+                        selected.participatingWeight,
+                        selected.snapshotSupply,
+                      ).toFixed(2)}% /{" "}
+                      {(selected.quorumBps / 100).toFixed(2).replace(/\.00$/, "")}% req.
+                    </dd>
                   </div>
                 </dl>
 
@@ -531,13 +551,9 @@ function Results({ poll }: { poll: Poll }) {
     () => poll.scores.reduce((sum, score) => sum + score, 0n),
     [poll.scores],
   );
-  const quorumProgress =
-    poll.referenceSupply === 0n
-      ? 0
-      : Number((poll.participatingWeight * 10_000n) / poll.referenceSupply) / 100;
   const resultHeading =
     poll.phase !== "closed"
-      ? `${veCrv(poll.participatingWeight)} veCRV participating`
+      ? "Voting in progress"
       : !poll.quorumMet
         ? "Quorum not met"
         : poll.hasWinner
@@ -551,9 +567,6 @@ function Results({ poll }: { poll: Poll }) {
           <p className="eyebrow">Current results</p>
           <h3>{resultHeading}</h3>
         </div>
-        <span className={poll.quorumMet ? "quorum met" : "quorum"}>
-          {quorumProgress.toFixed(2)}% participation
-        </span>
       </div>
       <div className="results-list">
         {poll.labels.map((label, index) => {

@@ -31,12 +31,12 @@ def test_poll_reads_canonical_voting_escrow_on_fixed_mainnet_fork():
     poll = poll_deployer.at(poll_address)
     voting_escrow = boa.load_abi("tests/abi/IVotingEscrow.json").at(VOTING_ESCROW)
 
-    assert poll.reference_supply() == voting_escrow.totalSupplyAt(
-        poll.reference_block()
+    assert poll.snapshot_supply() == voting_escrow.totalSupplyAt(
+        poll.snapshot_block()
     )
     expected_weight = voting_escrow.balanceOfAt(
         CONVEX_VOTER_PROXY,
-        poll.reference_block(),
+        poll.snapshot_block(),
     )
     assert expected_weight > 0
 

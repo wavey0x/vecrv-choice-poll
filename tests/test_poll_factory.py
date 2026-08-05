@@ -144,7 +144,7 @@ def test_created_polls_have_independent_storage(system, create_poll):
     weight = 50 * 10**18
     system.mock.set_balance_at(
         system.accounts.voter,
-        first.reference_block(),
+        first.snapshot_block(),
         weight,
     )
 

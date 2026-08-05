@@ -11,7 +11,7 @@ def test_maximum_size_creation_and_vote_have_bounded_gas(system):
     poll = system.poll_deployer.at(address)
     system.mock.set_balance_at(
         system.accounts.voter,
-        poll.reference_block(),
+        poll.snapshot_block(),
         100 * 10**18,
     )
     gas_before_vote = boa.env.get_gas_used()

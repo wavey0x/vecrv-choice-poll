@@ -83,8 +83,9 @@ def test_zero_snapshot_supply_reverts(system):
     assert system.factory.poll_count() == 0
 
 
-def test_snapshot_is_previous_block(system, create_poll):
+def test_snapshot_metadata_is_fixed_at_creation(system, create_poll):
     creation_block = boa.env.evm.patch.block_number
     poll = create_poll()
 
-    assert poll.reference_block() == creation_block - 1
+    assert poll.snapshot_block() == creation_block - 1
+    assert poll.snapshot_supply() == system.mock.default_supply()

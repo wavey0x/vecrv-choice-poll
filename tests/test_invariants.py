@@ -26,7 +26,7 @@ def test_aggregate_score_invariant(system, create_poll, weights, first, second):
             cut_a = min(first[index], second[index])
             cut_b = max(first[index], second[index])
             allocation = [cut_a, cut_b - cut_a, 10_000 - cut_b]
-            system.mock.set_balance_at(voter, poll.reference_block(), weight)
+            system.mock.set_balance_at(voter, poll.snapshot_block(), weight)
 
             with boa.env.prank(voter):
                 poll.vote(allocation)
