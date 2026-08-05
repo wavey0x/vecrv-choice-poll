@@ -1594,7 +1594,7 @@ wheels = [
 ]
 
 [[package]]
-name = "vecrv-ballots"
+name = "vecrv-polls"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

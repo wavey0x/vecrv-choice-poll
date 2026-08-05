@@ -86,32 +86,32 @@ main { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 56px 0 40
 .empty-state p { margin: 0; color: var(--text-muted); }
 
 .voting-layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); align-items: start; border: 1px solid var(--border); }
-.ballot-list { border-right: 1px solid var(--border); background: var(--surface); }
+.poll-list { border-right: 1px solid var(--border); background: var(--surface); }
 .panel-heading { height: 42px; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; border-bottom: 1px solid var(--border); color: var(--text-muted); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; }
-.ballot-item { width: 100%; display: flex; gap: 10px; align-items: flex-start; padding: 14px; border: 0; border-bottom: 1px solid var(--border); background: transparent; text-align: left; cursor: pointer; }
-.ballot-item:hover { background: var(--surface-hover); }
-.ballot-item.selected { background: #282828; }
+.poll-item { width: 100%; display: flex; gap: 10px; align-items: flex-start; padding: 14px; border: 0; border-bottom: 1px solid var(--border); background: transparent; text-align: left; cursor: pointer; }
+.poll-item:hover { background: var(--surface-hover); }
+.poll-item.selected { background: #282828; }
 .status-dot { width: 7px; height: 7px; margin-top: 4px; flex: 0 0 auto; border-radius: 50%; background: var(--text-muted); }
 .status-dot.active { background: var(--green); box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12); }
 .status-dot.upcoming { background: #eab308; }
-.ballot-item-copy { min-width: 0; display: grid; gap: 6px; }
-.ballot-item-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 500; }
-.ballot-item-copy small { color: var(--text-muted); font-size: 10px; text-transform: capitalize; }
+.poll-item-copy { min-width: 0; display: grid; gap: 6px; }
+.poll-item-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 500; }
+.poll-item-copy small { color: var(--text-muted); font-size: 10px; text-transform: capitalize; }
 
-.ballot-detail { min-width: 0; background: var(--surface); }
-.ballot-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; padding: 26px 28px; border-bottom: 1px solid var(--border); }
-.ballot-header h2 { margin: 7px 0 0; font-size: clamp(19px, 3vw, 26px); letter-spacing: -0.03em; }
-.ballot-header a { color: var(--text-muted); font-size: 10px; text-decoration: none; }
-.ballot-header a:hover { color: var(--text); }
+.poll-detail { min-width: 0; background: var(--surface); }
+.poll-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; padding: 26px 28px; border-bottom: 1px solid var(--border); }
+.poll-header h2 { margin: 7px 0 0; font-size: clamp(19px, 3vw, 26px); letter-spacing: -0.03em; }
+.poll-header a { color: var(--text-muted); font-size: 10px; text-decoration: none; }
+.poll-header a:hover { color: var(--text); }
 .status-label { display: inline-flex; align-items: center; color: var(--text-muted); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; }
 .status-label.active { color: var(--green); }
 .status-label.upcoming { color: #eab308; }
 
-.ballot-meta { display: grid; grid-template-columns: repeat(4, 1fr); margin: 0; border-bottom: 1px solid var(--border); }
-.ballot-meta div { min-width: 0; padding: 15px 18px; border-right: 1px solid var(--border); }
-.ballot-meta div:last-child { border-right: 0; }
-.ballot-meta dt { margin-bottom: 6px; color: var(--text-muted); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; }
-.ballot-meta dd { margin: 0; overflow: hidden; color: var(--text-secondary); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.poll-meta { display: grid; grid-template-columns: repeat(4, 1fr); margin: 0; border-bottom: 1px solid var(--border); }
+.poll-meta div { min-width: 0; padding: 15px 18px; border-right: 1px solid var(--border); }
+.poll-meta div:last-child { border-right: 0; }
+.poll-meta dt { margin-bottom: 6px; color: var(--text-muted); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; }
+.poll-meta dd { margin: 0; overflow: hidden; color: var(--text-secondary); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 
 .results-section, .allocation-section { padding: 26px 28px; }
 .results-section { border-bottom: 1px solid var(--border); }
@@ -154,10 +154,10 @@ main { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 56px 0 40
   main { width: min(100% - 24px, 680px); padding-top: 38px; }
   .intro { align-items: flex-start; flex-direction: column; gap: 16px; }
   .voting-layout { grid-template-columns: 1fr; }
-  .ballot-list { max-height: 230px; overflow-y: auto; border-right: 0; border-bottom: 1px solid var(--border); }
-  .ballot-meta { grid-template-columns: repeat(2, 1fr); }
-  .ballot-meta div:nth-child(2) { border-right: 0; }
-  .ballot-meta div:nth-child(-n + 2) { border-bottom: 1px solid var(--border); }
+  .poll-list { max-height: 230px; overflow-y: auto; border-right: 0; border-bottom: 1px solid var(--border); }
+  .poll-meta { grid-template-columns: repeat(2, 1fr); }
+  .poll-meta div:nth-child(2) { border-right: 0; }
+  .poll-meta div:nth-child(-n + 2) { border-bottom: 1px solid var(--border); }
 }
 
 @media (max-width: 520px) {
@@ -165,8 +165,8 @@ main { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 56px 0 40
   .brand > span:last-child { display: none; }
   .wallet-button { min-width: 128px; }
   .intro h1 { font-size: 29px; }
-  .ballot-header, .results-section, .allocation-section { padding: 20px 16px; }
-  .ballot-header { align-items: flex-start; flex-direction: column; gap: 10px; }
+  .poll-header, .results-section, .allocation-section { padding: 20px 16px; }
+  .poll-header { align-items: flex-start; flex-direction: column; gap: 10px; }
   .section-heading { align-items: flex-start; flex-direction: column; gap: 8px; }
   .result-copy { gap: 12px; }
   .allocation-row { min-height: 58px; }

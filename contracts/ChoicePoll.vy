@@ -13,7 +13,7 @@ PHASE_UPCOMING: constant(uint8) = 0
 PHASE_ACTIVE: constant(uint8) = 1
 PHASE_CLOSED: constant(uint8) = 2
 
-struct BallotStatus:
+struct PollStatus:
     phase: uint8
     quorum_met: bool
     tied: bool
@@ -149,10 +149,10 @@ def quorum_reached() -> bool:
 
 @external
 @view
-def status() -> BallotStatus:
+def status() -> PollStatus:
     quorum_met: bool = self._quorum_reached()
     if block.timestamp < self.start_time:
-        return BallotStatus(
+        return PollStatus(
             phase=PHASE_UPCOMING,
             quorum_met=quorum_met,
             tied=False,
@@ -160,7 +160,7 @@ def status() -> BallotStatus:
             winner_id=0,
         )
     if block.timestamp < self.end_time:
-        return BallotStatus(
+        return PollStatus(
             phase=PHASE_ACTIVE,
             quorum_met=quorum_met,
             tied=False,
@@ -168,7 +168,7 @@ def status() -> BallotStatus:
             winner_id=0,
         )
     if not quorum_met:
-        return BallotStatus(
+        return PollStatus(
             phase=PHASE_CLOSED,
             quorum_met=False,
             tied=False,
@@ -191,7 +191,7 @@ def status() -> BallotStatus:
         elif score == winning_score:
             tied = True
 
-    return BallotStatus(
+    return PollStatus(
         phase=PHASE_CLOSED,
         quorum_met=True,
         tied=tied,

@@ -7,7 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BUILD_DIR = ROOT / "build"
-CONTRACTS = ("ChoiceBallot", "ChoiceBallotFactory")
+CONTRACTS = ("ChoicePoll", "ChoicePollFactory")
 
 
 def compile_output(contract: str, output_format: str) -> str:
@@ -28,8 +28,8 @@ def main() -> None:
             encoding="utf-8",
         )
 
-    (BUILD_DIR / "ChoiceBallot.blueprint_bytecode").write_text(
-        compile_output("ChoiceBallot", "blueprint_bytecode") + "\n",
+    (BUILD_DIR / "ChoicePoll.blueprint_bytecode").write_text(
+        compile_output("ChoicePoll", "blueprint_bytecode") + "\n",
         encoding="utf-8",
     )
 

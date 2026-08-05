@@ -1,21 +1,21 @@
 export const factoryAbi = [
   {
     type: "function",
-    name: "ballot_count",
+    name: "poll_count",
     stateMutability: "view",
     inputs: [],
     outputs: [{ name: "", type: "uint256" }],
   },
   {
     type: "function",
-    name: "ballots",
+    name: "polls",
     stateMutability: "view",
     inputs: [{ name: "arg0", type: "uint256" }],
     outputs: [{ name: "", type: "address" }],
   },
 ] as const;
 
-export const ballotAbi = [
+export const pollAbi = [
   view("title", "string"),
   view("start_time", "uint256"),
   view("end_time", "uint256"),

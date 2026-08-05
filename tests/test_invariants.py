@@ -12,11 +12,11 @@ from hypothesis import HealthCheck, given, settings, strategies as st
     deadline=None,
     suppress_health_check=[HealthCheck.function_scoped_fixture],
 )
-def test_aggregate_score_invariant(system, create_ballot, weights, first, second):
+def test_aggregate_score_invariant(system, create_poll, weights, first, second):
     count = min(len(weights), len(first), len(second))
 
     with boa.env.anchor():
-        ballot = create_ballot(choices=["A", "B", "C"])
+        poll = create_poll(choices=["A", "B", "C"])
         expected = [0, 0, 0]
         participating = 0
 
@@ -26,16 +26,16 @@ def test_aggregate_score_invariant(system, create_ballot, weights, first, second
             cut_a = min(first[index], second[index])
             cut_b = max(first[index], second[index])
             allocation = [cut_a, cut_b - cut_a, 10_000 - cut_b]
-            system.mock.set_balance_at(voter, ballot.reference_block(), weight)
+            system.mock.set_balance_at(voter, poll.reference_block(), weight)
 
             with boa.env.prank(voter):
-                ballot.vote(allocation)
+                poll.vote(allocation)
 
             participating += weight
             for choice_id in range(3):
                 expected[choice_id] += weight * allocation[choice_id]
 
-        scores = [ballot.choice_scores(i) for i in range(3)]
-        assert ballot.participating_weight() == participating
+        scores = [poll.choice_scores(i) for i in range(3)]
+        assert poll.participating_weight() == participating
         assert scores == expected
         assert sum(scores) == participating * 10_000

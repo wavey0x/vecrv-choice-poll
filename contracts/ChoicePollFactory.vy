@@ -12,28 +12,28 @@ event CreatorApprovalUpdated:
     creator: indexed(address)
     approved: bool
 
-event BallotCreated:
-    ballot_id: indexed(uint256)
-    ballot: indexed(address)
+event PollCreated:
+    poll_id: indexed(uint256)
+    poll: indexed(address)
     creator: indexed(address)
 
-BALLOT_BLUEPRINT: immutable(address)
+POLL_BLUEPRINT: immutable(address)
 
-ballot_count: public(uint256)
-ballots: public(HashMap[uint256, address])
+poll_count: public(uint256)
+polls: public(HashMap[uint256, address])
 approved_creators: public(HashMap[address, bool])
 
 
 @deploy
 def __init__(
-    ballot_blueprint: address,
+    poll_blueprint: address,
     initial_creators: DynArray[address, MAX_INITIAL_CREATORS],
 ):
-    assert ballot_blueprint != empty(address), "zero blueprint"
-    assert ballot_blueprint.is_contract, "invalid blueprint"
+    assert poll_blueprint != empty(address), "zero blueprint"
+    assert poll_blueprint.is_contract, "invalid blueprint"
     assert len(initial_creators) > 0, "no creators"
 
-    BALLOT_BLUEPRINT = ballot_blueprint
+    POLL_BLUEPRINT = poll_blueprint
     self.approved_creators[CURVE_OWNERSHIP_AGENT] = True
     log CreatorApprovalUpdated(creator=CURVE_OWNERSHIP_AGENT, approved=True)
 
@@ -53,8 +53,8 @@ def __init__(
 
 @external
 @view
-def ballot_blueprint() -> address:
-    return BALLOT_BLUEPRINT
+def poll_blueprint() -> address:
+    return POLL_BLUEPRINT
 
 
 @external
@@ -69,7 +69,7 @@ def set_creator(creator: address, approved: bool):
 
 
 @external
-def create_ballot(
+def create_poll(
     title: String[64],
     quorum_bps: uint16,
     choice_names: DynArray[String[64], MAX_CHOICES],
@@ -87,8 +87,8 @@ def create_ballot(
         assert resolved_start <= max_value(uint256) - DEFAULT_VOTING_DURATION, "window overflow"
         resolved_end = resolved_start + DEFAULT_VOTING_DURATION
 
-    ballot: address = create_from_blueprint(
-        BALLOT_BLUEPRINT,
+    poll: address = create_from_blueprint(
+        POLL_BLUEPRINT,
         title,
         resolved_start,
         resolved_end,
@@ -97,9 +97,9 @@ def create_ballot(
         code_offset=3,
     )
 
-    ballot_id: uint256 = self.ballot_count
-    self.ballots[ballot_id] = ballot
-    self.ballot_count = ballot_id + 1
+    poll_id: uint256 = self.poll_count
+    self.polls[poll_id] = poll
+    self.poll_count = poll_id + 1
 
-    log BallotCreated(ballot_id=ballot_id, ballot=ballot, creator=msg.sender)
-    return ballot
+    log PollCreated(poll_id=poll_id, poll=poll, creator=msg.sender)
+    return poll

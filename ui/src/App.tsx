@@ -10,7 +10,7 @@ import {
   type Address,
 } from "viem";
 import { mainnet } from "viem/chains";
-import { ballotAbi, factoryAbi } from "../lib/contracts";
+import { pollAbi, factoryAbi } from "../lib/contracts";
 import { useWallet } from "../lib/useWallet";
 
 const RPC_URL =
@@ -20,7 +20,7 @@ const configuredFactory = import.meta.env.VITE_FACTORY_ADDRESS || "";
 const FACTORY_ADDRESS: Address | null = isAddress(configuredFactory)
   ? getAddress(configuredFactory)
   : null;
-const MAX_BALLOTS = 50n;
+const MAX_POLLS = 50n;
 
 const publicClient = createPublicClient({
   chain: mainnet,
@@ -31,7 +31,7 @@ const publicClient = createPublicClient({
   }),
 });
 
-type Ballot = {
+type Poll = {
   id: bigint;
   address: Address;
   title: string;
@@ -79,7 +79,7 @@ function veCrvScore(value: bigint) {
   }).format(formatted);
 }
 
-function phaseName(phase: number): Ballot["phase"] {
+function phaseName(phase: number): Poll["phase"] {
   if (phase === 0) return "upcoming";
   if (phase === 1) return "active";
   return "closed";
@@ -95,8 +95,8 @@ function readableError(error: unknown) {
   return "The request could not be completed.";
 }
 
-async function readBallot(id: bigint, address: Address, account: Address | null) {
-  const contract = { address, abi: ballotAbi } as const;
+async function readPoll(id: bigint, address: Address, account: Address | null) {
+  const contract = { address, abi: pollAbi } as const;
   const [
     title,
     startTime,
@@ -145,12 +145,12 @@ async function readBallot(id: bigint, address: Address, account: Address | null)
     tied: chainStatus.tied,
     hasWinner: chainStatus.has_winner,
     winnerId: Number(chainStatus.winner_id),
-  } satisfies Ballot;
+  } satisfies Poll;
 }
 
 export default function Home() {
   const wallet = useWallet(RPC_URL);
-  const [ballots, setBallots] = useState<Ballot[]>([]);
+  const [polls, setPolls] = useState<Poll[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
   const [allocations, setAllocations] = useState<string[]>([]);
   const [loading, setLoading] = useState(Boolean(FACTORY_ADDRESS));
@@ -169,9 +169,9 @@ export default function Home() {
       const count = await publicClient.readContract({
         address: FACTORY_ADDRESS,
         abi: factoryAbi,
-        functionName: "ballot_count",
+        functionName: "poll_count",
       });
-      const first = count > MAX_BALLOTS ? count - MAX_BALLOTS : 0n;
+      const first = count > MAX_POLLS ? count - MAX_POLLS : 0n;
       const ids = Array.from(
         { length: Number(count - first) },
         (_, index) => count - 1n - BigInt(index),
@@ -181,25 +181,25 @@ export default function Home() {
           publicClient.readContract({
             address: FACTORY_ADDRESS,
             abi: factoryAbi,
-            functionName: "ballots",
+            functionName: "polls",
             args: [id],
           }),
         ),
       );
       const next = await Promise.all(
         addresses.map((address, index) =>
-          readBallot(ids[index], address, wallet.account),
+          readPoll(ids[index], address, wallet.account),
         ),
       );
-      setBallots(next);
+      setPolls(next);
       const chosenAddress =
-        selectedAddress && next.some((ballot) => ballot.address === selectedAddress)
+        selectedAddress && next.some((poll) => poll.address === selectedAddress)
           ? selectedAddress
-          : (next.find((ballot) => ballot.phase === "active")
+          : (next.find((poll) => poll.phase === "active")
               ?.address ?? next[0]?.address ?? null);
       setSelectedAddress(chosenAddress);
       if (chosenAddress !== selectedAddress) {
-        const chosen = next.find((ballot) => ballot.address === chosenAddress);
+        const chosen = next.find((poll) => poll.address === chosenAddress);
         setAllocations(chosen ? chosen.labels.map(() => "0") : []);
         setSubmitState({ kind: "idle" });
       }
@@ -220,7 +220,7 @@ export default function Home() {
   }, [refresh]);
 
   const selected =
-    ballots.find((ballot) => ballot.address === selectedAddress) ?? null;
+    polls.find((poll) => poll.address === selectedAddress) ?? null;
 
   const allocationBps = allocations.map((value) => {
     const parsed = Number.parseFloat(value);
@@ -239,7 +239,7 @@ export default function Home() {
     try {
       const simulation = await publicClient.simulateContract({
         address: selected.address,
-        abi: ballotAbi,
+        abi: pollAbi,
         functionName: "vote",
         args: [allocationBps],
         account: wallet.account,
@@ -320,10 +320,10 @@ export default function Home() {
       <main>
         <section className="intro">
           <div>
-            <p className="eyebrow">veCRV preference ballots</p>
+            <p className="eyebrow">veCRV preference polls</p>
             <h1>Allocate your vote across the choices.</h1>
             <p className="intro-copy">
-              Each wallet votes once with its veCRV balance at the ballot’s snapshot block.
+              Each wallet votes once with its veCRV balance at the poll’s snapshot block.
             </p>
           </div>
           {FACTORY_ADDRESS && (
@@ -348,45 +348,45 @@ export default function Home() {
           <section className="empty-state">
             <p className="eyebrow">Deployment pending</p>
             <h2>No factory is configured.</h2>
-            <p>Add the canonical factory address to load Curve ballots.</p>
+            <p>Add the canonical factory address to load Curve polls.</p>
           </section>
         ) : loading ? (
           <section className="empty-state" aria-live="polite">
-            <p>Loading ballots…</p>
+            <p>Loading polls…</p>
           </section>
-        ) : ballots.length === 0 ? (
+        ) : polls.length === 0 ? (
           <section className="empty-state">
-            <h2>No ballots yet.</h2>
-            <p>Approved creators have not published a ballot.</p>
+            <h2>No polls yet.</h2>
+            <p>Approved creators have not published a poll.</p>
           </section>
         ) : (
           <div className="voting-layout">
-            <aside className="ballot-list" aria-label="Ballots">
+            <aside className="poll-list" aria-label="Polls">
               <div className="panel-heading">
-                <span>Ballots</span>
-                <span>{ballots.length}</span>
+                <span>Polls</span>
+                <span>{polls.length}</span>
               </div>
-              {ballots.map((ballot) => {
-                const itemStatus = ballot.phase;
+              {polls.map((poll) => {
+                const itemStatus = poll.phase;
                 return (
                   <button
                     type="button"
                     className={
-                      ballot.address === selectedAddress
-                        ? "ballot-item selected"
-                        : "ballot-item"
+                      poll.address === selectedAddress
+                        ? "poll-item selected"
+                        : "poll-item"
                     }
-                    key={ballot.address}
+                    key={poll.address}
                     onClick={() => {
-                      setSelectedAddress(ballot.address);
-                      setAllocations(ballot.labels.map(() => "0"));
+                      setSelectedAddress(poll.address);
+                      setAllocations(poll.labels.map(() => "0"));
                       setSubmitState({ kind: "idle" });
                     }}
                   >
                     <span className={`status-dot ${itemStatus}`} aria-hidden="true" />
-                    <span className="ballot-item-copy">
-                      <strong>{ballot.title}</strong>
-                      <small>Ballot {ballot.id.toString()} · {itemStatus}</small>
+                    <span className="poll-item-copy">
+                      <strong>{poll.title}</strong>
+                      <small>Poll {poll.id.toString()} · {itemStatus}</small>
                     </span>
                   </button>
                 );
@@ -394,8 +394,8 @@ export default function Home() {
             </aside>
 
             {selected && (
-              <section className="ballot-detail">
-                <div className="ballot-header">
+              <section className="poll-detail">
+                <div className="poll-header">
                   <div>
                     <div className={`status-label ${status}`}>{status}</div>
                     <h2>{selected.title}</h2>
@@ -409,7 +409,7 @@ export default function Home() {
                   </a>
                 </div>
 
-                <dl className="ballot-meta">
+                <dl className="poll-meta">
                   <div>
                     <dt>Starts</dt>
                     <dd>{timestampLabel(selected.startTime)}</dd>
@@ -428,7 +428,7 @@ export default function Home() {
                   </div>
                 </dl>
 
-                <Results ballot={selected} />
+                <Results poll={selected} />
 
                 <div className="allocation-section">
                   <div className="section-heading">
@@ -520,31 +520,31 @@ export default function Home() {
         )}
 
         <p className="disclaimer">
-          A ballot records voter preference. Protocol changes still go through Curve governance.
+          A poll records voter preference. Protocol changes still go through Curve governance.
         </p>
       </main>
     </div>
   );
 }
 
-function Results({ ballot }: { ballot: Ballot }) {
+function Results({ poll }: { poll: Poll }) {
   const totalScore = useMemo(
-    () => ballot.scores.reduce((sum, score) => sum + score, 0n),
-    [ballot.scores],
+    () => poll.scores.reduce((sum, score) => sum + score, 0n),
+    [poll.scores],
   );
   const quorumProgress =
-    ballot.referenceSupply === 0n
+    poll.referenceSupply === 0n
       ? 0
-      : Number((ballot.participatingWeight * 10_000n) / ballot.referenceSupply) / 100;
+      : Number((poll.participatingWeight * 10_000n) / poll.referenceSupply) / 100;
   const resultHeading =
-    ballot.phase !== "closed"
-      ? `${veCrv(ballot.participatingWeight)} veCRV participating`
-      : !ballot.quorumMet
+    poll.phase !== "closed"
+      ? `${veCrv(poll.participatingWeight)} veCRV participating`
+      : !poll.quorumMet
         ? "Quorum not met"
-        : ballot.tied
+        : poll.tied
           ? "Result: tie"
-          : ballot.hasWinner
-            ? `Winner: ${ballot.labels[ballot.winnerId]}`
+          : poll.hasWinner
+            ? `Winner: ${poll.labels[poll.winnerId]}`
             : "No winner";
 
   return (
@@ -554,13 +554,13 @@ function Results({ ballot }: { ballot: Ballot }) {
           <p className="eyebrow">Current results</p>
           <h3>{resultHeading}</h3>
         </div>
-        <span className={ballot.quorumMet ? "quorum met" : "quorum"}>
+        <span className={poll.quorumMet ? "quorum met" : "quorum"}>
           {quorumProgress.toFixed(2)}% participation
         </span>
       </div>
       <div className="results-list">
-        {ballot.labels.map((label, index) => {
-          const score = ballot.scores[index];
+        {poll.labels.map((label, index) => {
+          const score = poll.scores[index];
           const share = totalScore === 0n ? 0 : Number((score * 10_000n) / totalScore) / 100;
           return (
             <div className="result-row" key={`${index}-${label}`}>

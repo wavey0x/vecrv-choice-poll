@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deploy the immutable ballot blueprint and factory to Ethereum mainnet."""
+"""Deploy the immutable poll blueprint and factory to Ethereum mainnet."""
 
 import argparse
 import json
@@ -55,14 +55,14 @@ def main() -> None:
         raise SystemExit(f"Expected Ethereum mainnet (chain 1), received chain {chain_id}")
     boa.env.add_account(account, force_eoa=True)
 
-    ballot_deployer = boa.load_partial(ROOT / "contracts" / "ChoiceBallot.vy")
-    blueprint = ballot_deployer.deploy_as_blueprint()
+    poll_deployer = boa.load_partial(ROOT / "contracts" / "ChoicePoll.vy")
+    blueprint = poll_deployer.deploy_as_blueprint()
     factory = boa.load(
-        ROOT / "contracts" / "ChoiceBallotFactory.vy",
+        ROOT / "contracts" / "ChoicePollFactory.vy",
         blueprint.address,
         creators,
     )
-    if factory.ballot_blueprint() != blueprint.address:
+    if factory.poll_blueprint() != blueprint.address:
         raise RuntimeError("Factory blueprint verification failed")
     if not all(factory.approved_creators(creator) for creator in creators):
         raise RuntimeError("Initial creator verification failed")
@@ -71,8 +71,8 @@ def main() -> None:
         "chain_id": chain_id,
         "deployed_at": datetime.now(timezone.utc).isoformat(),
         "deployer": account.address,
-        "choice_ballot_blueprint": str(blueprint.address),
-        "choice_ballot_factory": str(factory.address),
+        "choice_poll_blueprint": str(blueprint.address),
+        "choice_poll_factory": str(factory.address),
         "initial_creators": creators,
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)

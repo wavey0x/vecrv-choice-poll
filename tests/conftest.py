@@ -35,18 +35,18 @@ def system(accounts):
     )
     mock.set_default_supply(DEFAULT_SUPPLY)
 
-    ballot_deployer = boa.load_partial("contracts/ChoiceBallot.vy")
+    poll_deployer = boa.load_partial("contracts/ChoicePoll.vy")
     with boa.env.prank(accounts.deployer):
-        blueprint = ballot_deployer.deploy_as_blueprint()
+        blueprint = poll_deployer.deploy_as_blueprint()
         factory = boa.load(
-            "contracts/ChoiceBallotFactory.vy",
+            "contracts/ChoicePollFactory.vy",
             blueprint.address,
             [accounts.creator],
         )
 
     return SimpleNamespace(
         mock=mock,
-        ballot_deployer=ballot_deployer,
+        poll_deployer=poll_deployer,
         blueprint=blueprint,
         factory=factory,
         accounts=accounts,
@@ -54,7 +54,7 @@ def system(accounts):
 
 
 @pytest.fixture
-def create_ballot(system):
+def create_poll(system):
     def create(
         *,
         title="Risk provider preference",
@@ -69,22 +69,22 @@ def create_ballot(system):
 
         with boa.env.prank(sender):
             if start_time is None and end_time is None:
-                address = system.factory.create_ballot(title, quorum_bps, choices)
+                address = system.factory.create_poll(title, quorum_bps, choices)
             elif end_time is None:
-                address = system.factory.create_ballot(
+                address = system.factory.create_poll(
                     title,
                     quorum_bps,
                     choices,
                     start_time,
                 )
             else:
-                address = system.factory.create_ballot(
+                address = system.factory.create_poll(
                     title,
                     quorum_bps,
                     choices,
                     start_time or 0,
                     end_time,
                 )
-        return system.ballot_deployer.at(address)
+        return system.poll_deployer.at(address)
 
     return create
