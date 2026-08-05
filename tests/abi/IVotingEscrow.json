@@ -1,0 +1,19 @@
+[
+  {
+    "type": "function",
+    "name": "totalSupplyAt",
+    "stateMutability": "view",
+    "inputs": [{ "name": "block_number", "type": "uint256" }],
+    "outputs": [{ "name": "", "type": "uint256" }]
+  },
+  {
+    "type": "function",
+    "name": "balanceOfAt",
+    "stateMutability": "view",
+    "inputs": [
+      { "name": "account", "type": "address" },
+      { "name": "block_number", "type": "uint256" }
+    ],
+    "outputs": [{ "name": "", "type": "uint256" }]
+  }
+]
