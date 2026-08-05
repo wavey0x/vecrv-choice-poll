@@ -4,6 +4,15 @@ veCRV Ballots is a small preference system for questions with more than two answ
 
 A ballot records what voters prefer. It does not make protocol changes by itself; any change still follows Curve's normal governance process.
 
+## Architecture
+
+```mermaid
+flowchart LR
+    Creators[Approved Curve creators] -->|create| Factory[Ballot factory]
+    Factory --> Ballots[Immutable ballots]
+    Voters[veCRV voters] -->|read and vote| Ballots
+```
+
 ## How a ballot works
 
 1. An approved Curve multisig creates a ballot with a title, choices, quorum, and voting window.
@@ -63,7 +72,6 @@ The interface displays a clear deployment-pending state until the canonical fact
 ```text
 contracts/   Vyper ballot, factory, and VotingEscrow interface
 tests/       Titanoboa unit, property, gas, and optional mainnet-fork tests
-abi/         Generated contract ABIs
 scripts/     Reproducible build and mainnet deployment tools
 ui/          Minimal voter application
 ```

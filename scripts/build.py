@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 """Compile reviewed contract artifacts with the pinned Vyper compiler."""
 
-import json
 import subprocess
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-ABI_DIR = ROOT / "abi"
 BUILD_DIR = ROOT / "build"
 CONTRACTS = ("ChoiceBallot", "ChoiceBallotFactory")
 
@@ -22,15 +20,9 @@ def compile_output(contract: str, output_format: str) -> str:
 
 
 def main() -> None:
-    ABI_DIR.mkdir(exist_ok=True)
     BUILD_DIR.mkdir(exist_ok=True)
 
     for contract in CONTRACTS:
-        abi = json.loads(compile_output(contract, "abi"))
-        (ABI_DIR / f"{contract}.json").write_text(
-            json.dumps(abi, indent=2) + "\n",
-            encoding="utf-8",
-        )
         (BUILD_DIR / f"{contract}.bytecode").write_text(
             compile_output(contract, "bytecode") + "\n",
             encoding="utf-8",
