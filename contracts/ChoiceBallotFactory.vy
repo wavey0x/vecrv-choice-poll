@@ -4,7 +4,7 @@
 
 CURVE_OWNERSHIP_AGENT: constant(address) = 0x40907540d8a6C65c637785e8f8B742ae6b0b9968
 
-MAX_CHOICES: constant(uint256) = 15
+MAX_CHOICES: constant(uint256) = 64
 MAX_INITIAL_CREATORS: constant(uint256) = 8
 DEFAULT_VOTING_DURATION: constant(uint256) = 7 * 86400
 

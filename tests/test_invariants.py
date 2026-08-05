@@ -16,7 +16,7 @@ def test_aggregate_score_invariant(system, create_ballot, weights, first, second
     count = min(len(weights), len(first), len(second))
 
     with boa.env.anchor():
-        ballot = create_ballot(choices=["A", "B"])
+        ballot = create_ballot(choices=["A", "B", "C"])
         expected = [0, 0, 0]
         participating = 0
 
@@ -32,10 +32,10 @@ def test_aggregate_score_invariant(system, create_ballot, weights, first, second
                 ballot.vote(allocation)
 
             participating += weight
-            for option_id in range(3):
-                expected[option_id] += weight * allocation[option_id]
+            for choice_id in range(3):
+                expected[choice_id] += weight * allocation[choice_id]
 
-        scores = [ballot.option_scores(i) for i in range(3)]
+        scores = [ballot.choice_scores(i) for i in range(3)]
         assert ballot.participating_weight() == participating
         assert scores == expected
         assert sum(scores) == participating * 10_000

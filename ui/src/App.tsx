@@ -44,6 +44,11 @@ type Ballot = {
   labels: string[];
   scores: bigint[];
   hasVoted: boolean;
+  phase: "upcoming" | "active" | "closed";
+  quorumMet: boolean;
+  tied: boolean;
+  hasWinner: boolean;
+  winnerId: number;
 };
 
 function compactAddress(address: string) {
@@ -74,10 +79,10 @@ function veCrvScore(value: bigint) {
   }).format(formatted);
 }
 
-function ballotStatus(ballot: Ballot, now: number) {
-  if (now < Number(ballot.startTime)) return "upcoming";
-  if (now >= Number(ballot.endTime)) return "closed";
-  return "active";
+function phaseName(phase: number): Ballot["phase"] {
+  if (phase === 0) return "upcoming";
+  if (phase === 1) return "active";
+  return "closed";
 }
 
 function readableError(error: unknown) {
@@ -99,7 +104,8 @@ async function readBallot(id: bigint, address: Address, account: Address | null)
     referenceBlock,
     referenceSupply,
     quorumBps,
-    optionCount,
+    choices,
+    chainStatus,
     participatingWeight,
     hasVoted,
   ] = await Promise.all([
@@ -109,7 +115,8 @@ async function readBallot(id: bigint, address: Address, account: Address | null)
     publicClient.readContract({ ...contract, functionName: "reference_block" }),
     publicClient.readContract({ ...contract, functionName: "reference_supply" }),
     publicClient.readContract({ ...contract, functionName: "quorum_bps" }),
-    publicClient.readContract({ ...contract, functionName: "option_count" }),
+    publicClient.readContract({ ...contract, functionName: "choices" }),
+    publicClient.readContract({ ...contract, functionName: "status" }),
     publicClient.readContract({ ...contract, functionName: "participating_weight" }),
     account
       ? publicClient.readContract({
@@ -118,28 +125,6 @@ async function readBallot(id: bigint, address: Address, account: Address | null)
           args: [account],
         })
       : Promise.resolve(false),
-  ]);
-
-  const optionIds = Array.from({ length: Number(optionCount) }, (_, index) => index);
-  const [choiceNames, scores] = await Promise.all([
-    Promise.all(
-      optionIds.slice(1).map((choiceId) =>
-        publicClient.readContract({
-          ...contract,
-          functionName: "choice_name",
-          args: [choiceId],
-        }),
-      ),
-    ),
-    Promise.all(
-      optionIds.map((optionId) =>
-        publicClient.readContract({
-          ...contract,
-          functionName: "option_scores",
-          args: [BigInt(optionId)],
-        }),
-      ),
-    ),
   ]);
 
   return {
@@ -152,9 +137,14 @@ async function readBallot(id: bigint, address: Address, account: Address | null)
     referenceSupply,
     quorumBps: Number(quorumBps),
     participatingWeight,
-    labels: ["Abstain", ...choiceNames],
-    scores,
+    labels: [...choices[0]],
+    scores: [...choices[1]],
     hasVoted,
+    phase: phaseName(Number(chainStatus.phase)),
+    quorumMet: chainStatus.quorum_met,
+    tied: chainStatus.tied,
+    hasWinner: chainStatus.has_winner,
+    winnerId: Number(chainStatus.winner_id),
   } satisfies Ballot;
 }
 
@@ -171,7 +161,6 @@ export default function Home() {
     message?: string;
     hash?: Address;
   }>({ kind: "idle" });
-  const [now, setNow] = useState(() => Math.floor(Date.now() / 1_000));
 
   const refresh = useCallback(async () => {
     if (!FACTORY_ADDRESS) return;
@@ -203,11 +192,10 @@ export default function Home() {
         ),
       );
       setBallots(next);
-      const refreshedAt = Math.floor(Date.now() / 1_000);
       const chosenAddress =
         selectedAddress && next.some((ballot) => ballot.address === selectedAddress)
           ? selectedAddress
-          : (next.find((ballot) => ballotStatus(ballot, refreshedAt) === "active")
+          : (next.find((ballot) => ballot.phase === "active")
               ?.address ?? next[0]?.address ?? null);
       setSelectedAddress(chosenAddress);
       if (chosenAddress !== selectedAddress) {
@@ -231,14 +219,6 @@ export default function Home() {
     };
   }, [refresh]);
 
-  useEffect(() => {
-    const clock = window.setInterval(
-      () => setNow(Math.floor(Date.now() / 1_000)),
-      1_000,
-    );
-    return () => window.clearInterval(clock);
-  }, []);
-
   const selected =
     ballots.find((ballot) => ballot.address === selectedAddress) ?? null;
 
@@ -247,7 +227,7 @@ export default function Home() {
     return Number.isFinite(parsed) ? Math.round(parsed * 100) : 0;
   });
   const allocationTotal = allocationBps.reduce((sum, value) => sum + value, 0);
-  const status = selected ? ballotStatus(selected, now) : null;
+  const status = selected?.phase ?? null;
 
   const submitVote = async () => {
     if (!selected || !wallet.provider || !wallet.account) return;
@@ -387,7 +367,7 @@ export default function Home() {
                 <span>{ballots.length}</span>
               </div>
               {ballots.map((ballot) => {
-                const itemStatus = ballotStatus(ballot, now);
+                const itemStatus = ballot.phase;
                 return (
                   <button
                     type="button"
@@ -465,7 +445,7 @@ export default function Home() {
                     {selected.labels.map((label, index) => (
                       <label className="allocation-row" key={`${index}-${label}`}>
                         <span>
-                          <small>{index === 0 ? "ABSTAIN" : `CHOICE ${index}`}</small>
+                          <small>CHOICE {index + 1}</small>
                           {label}
                         </span>
                         <span className="percent-input">
@@ -556,16 +536,25 @@ function Results({ ballot }: { ballot: Ballot }) {
     ballot.referenceSupply === 0n
       ? 0
       : Number((ballot.participatingWeight * 10_000n) / ballot.referenceSupply) / 100;
-  const quorumMet = quorumProgress * 100 >= ballot.quorumBps;
+  const resultHeading =
+    ballot.phase !== "closed"
+      ? `${veCrv(ballot.participatingWeight)} veCRV participating`
+      : !ballot.quorumMet
+        ? "Quorum not met"
+        : ballot.tied
+          ? "Result: tie"
+          : ballot.hasWinner
+            ? `Winner: ${ballot.labels[ballot.winnerId]}`
+            : "No winner";
 
   return (
     <div className="results-section">
       <div className="section-heading">
         <div>
           <p className="eyebrow">Current results</p>
-          <h3>{veCrv(ballot.participatingWeight)} veCRV participating</h3>
+          <h3>{resultHeading}</h3>
         </div>
-        <span className={quorumMet ? "quorum met" : "quorum"}>
+        <span className={ballot.quorumMet ? "quorum met" : "quorum"}>
           {quorumProgress.toFixed(2)}% participation
         </span>
       </div>

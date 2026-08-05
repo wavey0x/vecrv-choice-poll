@@ -6,16 +6,17 @@ def test_choice_ids_are_contiguous_and_stable(create_ballot):
     ballot = create_ballot(choices=["No award", "LlamaRisk", "ChainSecurity"])
 
     assert ballot.choice_count() == 3
-    assert ballot.option_count() == 4
-    assert [ballot.choice_name(i) for i in range(1, 4)] == [
+    assert [ballot.choice_name(i) for i in range(3)] == [
         "No award",
         "LlamaRisk",
         "ChainSecurity",
     ]
+    assert ballot.choices() == (
+        ["No award", "LlamaRisk", "ChainSecurity"],
+        [0, 0, 0],
+    )
     with boa.reverts("invalid choice"):
-        ballot.choice_name(0)
-    with boa.reverts("invalid choice"):
-        ballot.choice_name(4)
+        ballot.choice_name(3)
 
 
 @pytest.mark.parametrize(
@@ -51,7 +52,7 @@ def test_choice_count_is_bounded_by_abi(system):
             system.factory.create_ballot(
                 "Too many",
                 0,
-                [f"Choice {i}" for i in range(16)],
+                [f"Choice {i}" for i in range(65)],
             )
 
 

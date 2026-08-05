@@ -149,10 +149,10 @@ def test_created_ballots_have_independent_storage(system, create_ballot):
     )
 
     with boa.env.prank(system.accounts.voter):
-        first.vote([0, 10_000, 0])
+        first.vote([10_000, 0])
 
     assert first.participating_weight() == weight
     assert second.participating_weight() == 0
     assert not second.has_voted(system.accounts.voter)
-    assert first.choice_name(1) == "A"
-    assert second.choice_name(1) == "C"
+    assert first.choice_name(0) == "A"
+    assert second.choice_name(0) == "C"

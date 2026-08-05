@@ -41,5 +41,5 @@ def test_ballot_reads_canonical_voting_escrow_on_fixed_mainnet_fork():
     assert expected_weight > 0
 
     with boa.env.prank(CONVEX_VOTER_PROXY):
-        ballot.vote([0, 10_000, 0])
+        ballot.vote([10_000, 0])
     assert ballot.participating_weight() == expected_weight

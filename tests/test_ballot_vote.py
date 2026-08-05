@@ -8,17 +8,20 @@ def test_exact_split_accounting(system, create_ballot):
     system.mock.set_balance_at(voter, ballot.reference_block(), weight)
 
     with boa.env.prank(voter):
-        ballot.vote([500, 2_500, 3_000, 4_000])
+        ballot.vote([2_500, 3_000, 4_500])
 
     assert ballot.has_voted(voter)
     assert ballot.participating_weight() == weight
-    assert [ballot.option_scores(i) for i in range(4)] == [
-        weight * 500,
+    assert [ballot.choice_scores(i) for i in range(3)] == [
         weight * 2_500,
         weight * 3_000,
-        weight * 4_000,
+        weight * 4_500,
     ]
-    assert sum(ballot.option_scores(i) for i in range(4)) == weight * 10_000
+    assert ballot.choices() == (
+        ["No award", "Team A", "Team B"],
+        [weight * 2_500, weight * 3_000, weight * 4_500],
+    )
+    assert sum(ballot.choice_scores(i) for i in range(3)) == weight * 10_000
 
 
 def test_second_vote_reverts(system, create_ballot):
@@ -27,9 +30,9 @@ def test_second_vote_reverts(system, create_ballot):
     system.mock.set_balance_at(voter, ballot.reference_block(), 1)
 
     with boa.env.prank(voter):
-        ballot.vote([0, 10_000, 0, 0])
+        ballot.vote([10_000, 0, 0])
         with boa.reverts("already voted"):
-            ballot.vote([0, 0, 10_000, 0])
+            ballot.vote([0, 10_000, 0])
 
 
 def test_failed_first_vote_does_not_consume_eligibility(system, create_ballot):
@@ -39,9 +42,9 @@ def test_failed_first_vote_does_not_consume_eligibility(system, create_ballot):
 
     with boa.env.prank(voter):
         with boa.reverts("wrong total"):
-            ballot.vote([0, 5_000, 0, 0])
+            ballot.vote([5_000, 0, 0])
         assert not ballot.has_voted(voter)
-        ballot.vote([0, 5_000, 5_000, 0])
+        ballot.vote([5_000, 5_000, 0])
 
     assert ballot.has_voted(voter)
 
@@ -55,11 +58,11 @@ def test_invalid_allocations_revert(system, create_ballot):
         with boa.reverts("wrong length"):
             ballot.vote([5_000, 5_000])
         with boa.reverts("allocation too high"):
-            ballot.vote([0, 10_001, 0, 0])
+            ballot.vote([10_001, 0, 0])
         with boa.reverts("wrong total"):
-            ballot.vote([0, 5_000, 4_999, 0])
+            ballot.vote([5_000, 4_999, 0])
         with boa.reverts("wrong total"):
-            ballot.vote([0, 5_000, 5_001, 0])
+            ballot.vote([5_000, 5_001, 0])
     assert not ballot.has_voted(voter)
 
 
@@ -68,7 +71,7 @@ def test_zero_weight_cannot_vote(system, create_ballot):
 
     with boa.env.prank(system.accounts.voter):
         with boa.reverts("no voting power"):
-            ballot.vote([0, 10_000, 0, 0])
+            ballot.vote([10_000, 0, 0])
     assert not ballot.has_voted(system.accounts.voter)
 
 
@@ -80,18 +83,18 @@ def test_vote_respects_window(system, create_ballot):
 
     with boa.env.prank(voter):
         with boa.reverts("not started"):
-            ballot.vote([0, 10_000, 0, 0])
+            ballot.vote([10_000, 0, 0])
 
     boa.env.time_travel(seconds=100)
     with boa.env.prank(voter):
-        ballot.vote([0, 10_000, 0, 0])
+        ballot.vote([10_000, 0, 0])
 
     second = system.accounts.second_voter
     system.mock.set_balance_at(second, ballot.reference_block(), 100)
     boa.env.time_travel(seconds=100)
     with boa.env.prank(second):
         with boa.reverts("ended"):
-            ballot.vote([0, 10_000, 0, 0])
+            ballot.vote([10_000, 0, 0])
 
 
 def test_snapshot_weight_is_immutable(system, create_ballot):
@@ -102,6 +105,6 @@ def test_snapshot_weight_is_immutable(system, create_ballot):
     system.mock.set_balance(voter, 999_999)
 
     with boa.env.prank(voter):
-        ballot.vote([0, 0, 10_000, 0])
+        ballot.vote([0, 10_000, 0])
 
     assert ballot.participating_weight() == historical_weight

@@ -22,20 +22,34 @@ export const ballotAbi = [
   view("reference_block", "uint256"),
   view("reference_supply", "uint256"),
   view("quorum_bps", "uint16"),
-  view("option_count", "uint16"),
   {
     type: "function",
-    name: "choice_name",
+    name: "choices",
     stateMutability: "view",
-    inputs: [{ name: "choice_id", type: "uint16" }],
-    outputs: [{ name: "", type: "string" }],
+    inputs: [],
+    outputs: [
+      { name: "", type: "string[]" },
+      { name: "", type: "uint256[]" },
+    ],
   },
   {
     type: "function",
-    name: "option_scores",
+    name: "status",
     stateMutability: "view",
-    inputs: [{ name: "arg0", type: "uint256" }],
-    outputs: [{ name: "", type: "uint256" }],
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "tuple",
+        components: [
+          { name: "phase", type: "uint8" },
+          { name: "quorum_met", type: "bool" },
+          { name: "tied", type: "bool" },
+          { name: "has_winner", type: "bool" },
+          { name: "winner_id", type: "uint16" },
+        ],
+      },
+    ],
   },
   {
     type: "function",

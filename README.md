@@ -8,9 +8,9 @@ A ballot records what voters prefer. It does not make protocol changes by itself
 
 ```mermaid
 flowchart LR
-    Creators[Approved Curve creators] -->|create| Factory[Ballot factory]
-    Factory --> Ballots[Immutable ballots]
-    Voters[veCRV voters] -->|read and vote| Ballots
+    Creators([Approved Curve creators]) -->|create| Factory[[Ballot factory]]
+    Factory --> Ballots[[Immutable ballots]]
+    Voters([veCRV voters]) -->|read and vote| Ballots
 ```
 
 ## How a ballot works
@@ -18,8 +18,9 @@ flowchart LR
 1. An approved Curve multisig creates a ballot with a title, choices, quorum, and voting window.
 2. The ballot takes a snapshot of veCRV balances from the block immediately before creation.
 3. During the voting window, each address submits one complete allocation totaling exactly 100%.
-4. Abstain counts toward participation and quorum but cannot win.
-5. After the window closes, the highest-scoring non-abstain choice wins. An exact tie has no winner.
+4. After the window closes, the highest-scoring choice wins. An exact tie has no winner.
+
+Creators provide 2–64 choices. There are no built-in choices; a creator can add an abstain-style choice when appropriate.
 
 The shortest creation call starts voting immediately and closes it after seven days. A creator can instead provide a future start time, or both an absolute start and end time. Once created, a ballot's title, choices, snapshot, quorum, and window cannot change.
 
@@ -44,8 +45,10 @@ Scores are stored without rounding:
 
 ```text
 choice score contribution = snapshot veCRV × allocated basis points
-sum of all option scores = participating veCRV × 10,000
+sum of all choice scores = participating veCRV × 10,000
 ```
+
+`choices()` returns every label with its current score, while non-reverting `status()` reports the phase, quorum, tie, and final winner.
 
 The contracts hold no assets, make no arbitrary calls, have no upgrade path, and cannot make protocol changes.
 

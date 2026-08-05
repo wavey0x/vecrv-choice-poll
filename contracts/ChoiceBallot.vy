@@ -6,10 +6,19 @@ import contracts.interfaces.IVotingEscrow as IVotingEscrow
 
 VOTING_ESCROW: constant(address) = 0x5f3b5DfEb7B28CDbD7FAba78963EE202a494e2A2
 
-MAX_CHOICES: constant(uint256) = 15
-MAX_OPTIONS: constant(uint256) = 16
+MAX_CHOICES: constant(uint256) = 64
 BPS: constant(uint256) = 10_000
-FIRST_CHOICE_ID: constant(uint256) = 1
+
+PHASE_UPCOMING: constant(uint8) = 0
+PHASE_ACTIVE: constant(uint8) = 1
+PHASE_CLOSED: constant(uint8) = 2
+
+struct BallotStatus:
+    phase: uint8
+    quorum_met: bool
+    tied: bool
+    has_winner: bool
+    winner_id: uint16
 
 event VoteCast:
     voter: indexed(address)
@@ -23,11 +32,10 @@ reference_block: public(uint256)
 reference_supply: public(uint256)
 quorum_bps: public(uint16)
 choice_count: public(uint16)
-option_count: public(uint16)
 
-choices: DynArray[String[64], MAX_CHOICES]
+choice_labels: DynArray[String[64], MAX_CHOICES]
 has_voted: public(HashMap[address, bool])
-option_scores: public(uint256[MAX_OPTIONS])
+choice_scores: public(uint256[MAX_CHOICES])
 participating_weight: public(uint256)
 
 
@@ -67,27 +75,36 @@ def __init__(
     self.reference_supply = snapshot_supply
     self.quorum_bps = quorum_bps_
     self.choice_count = convert(len(choice_names_), uint16)
-    self.option_count = convert(len(choice_names_) + FIRST_CHOICE_ID, uint16)
-    self.choices = choice_names_
+    self.choice_labels = choice_names_
 
 
 @external
 @view
 def choice_name(choice_id: uint16) -> String[64]:
-    assert choice_id >= convert(FIRST_CHOICE_ID, uint16), "invalid choice"
-    assert choice_id < self.option_count, "invalid choice"
-    return self.choices[convert(choice_id, uint256) - FIRST_CHOICE_ID]
+    assert choice_id < self.choice_count, "invalid choice"
+    return self.choice_labels[convert(choice_id, uint256)]
 
 
 @external
-def vote(allocations_bps: DynArray[uint16, MAX_OPTIONS]):
+@view
+def choices() -> (DynArray[String[64], MAX_CHOICES], DynArray[uint256, MAX_CHOICES]):
+    scores: DynArray[uint256, MAX_CHOICES] = []
+    for i: uint256 in range(MAX_CHOICES):
+        if i == convert(self.choice_count, uint256):
+            break
+        scores.append(self.choice_scores[i])
+    return self.choice_labels, scores
+
+
+@external
+def vote(allocations_bps: DynArray[uint16, MAX_CHOICES]):
     assert block.timestamp >= self.start_time, "not started"
     assert block.timestamp < self.end_time, "ended"
     assert not self.has_voted[msg.sender], "already voted"
-    assert len(allocations_bps) == convert(self.option_count, uint256), "wrong length"
+    assert len(allocations_bps) == convert(self.choice_count, uint256), "wrong length"
 
     allocation_total: uint256 = 0
-    for i: uint256 in range(MAX_OPTIONS):
+    for i: uint256 in range(MAX_CHOICES):
         if i == len(allocations_bps):
             break
         allocation: uint256 = convert(allocations_bps[i], uint256)
@@ -104,12 +121,12 @@ def vote(allocations_bps: DynArray[uint16, MAX_OPTIONS]):
     self.has_voted[msg.sender] = True
     self.participating_weight += weight
 
-    for i: uint256 in range(MAX_OPTIONS):
+    for i: uint256 in range(MAX_CHOICES):
         if i == len(allocations_bps):
             break
         allocation: uint256 = convert(allocations_bps[i], uint256)
         if allocation > 0:
-            self.option_scores[i] += weight * allocation
+            self.choice_scores[i] += weight * allocation
 
     log VoteCast(
         voter=msg.sender,
@@ -118,33 +135,55 @@ def vote(allocations_bps: DynArray[uint16, MAX_OPTIONS]):
     )
 
 
-@external
+@internal
 @view
-def quorum_reached() -> bool:
+def _quorum_reached() -> bool:
     return self.participating_weight * BPS >= self.reference_supply * convert(self.quorum_bps, uint256)
 
 
 @external
 @view
-def result() -> (bool, bool, uint16):
-    """
-    @notice Return quorum status, tie status, and the winning eligible choice ID.
-    @dev Reverts while voting is active. winner_id is zero without quorum or on a tie.
-    """
-    assert block.timestamp >= self.end_time, "still active"
+def quorum_reached() -> bool:
+    return self._quorum_reached()
 
-    quorum_met: bool = self.participating_weight * BPS >= self.reference_supply * convert(self.quorum_bps, uint256)
+
+@external
+@view
+def status() -> BallotStatus:
+    quorum_met: bool = self._quorum_reached()
+    if block.timestamp < self.start_time:
+        return BallotStatus(
+            phase=PHASE_UPCOMING,
+            quorum_met=quorum_met,
+            tied=False,
+            has_winner=False,
+            winner_id=0,
+        )
+    if block.timestamp < self.end_time:
+        return BallotStatus(
+            phase=PHASE_ACTIVE,
+            quorum_met=quorum_met,
+            tied=False,
+            has_winner=False,
+            winner_id=0,
+        )
     if not quorum_met:
-        return False, False, 0
+        return BallotStatus(
+            phase=PHASE_CLOSED,
+            quorum_met=False,
+            tied=False,
+            has_winner=False,
+            winner_id=0,
+        )
 
-    winning_id: uint16 = convert(FIRST_CHOICE_ID, uint16)
-    winning_score: uint256 = self.option_scores[FIRST_CHOICE_ID]
+    winning_id: uint16 = 0
+    winning_score: uint256 = self.choice_scores[0]
     tied: bool = False
 
-    for i: uint256 in range(2, MAX_OPTIONS):
-        if i == convert(self.option_count, uint256):
+    for i: uint256 in range(1, MAX_CHOICES):
+        if i == convert(self.choice_count, uint256):
             break
-        score: uint256 = self.option_scores[i]
+        score: uint256 = self.choice_scores[i]
         if score > winning_score:
             winning_score = score
             winning_id = convert(i, uint16)
@@ -152,6 +191,10 @@ def result() -> (bool, bool, uint16):
         elif score == winning_score:
             tied = True
 
-    if tied:
-        return True, True, 0
-    return True, False, winning_id
+    return BallotStatus(
+        phase=PHASE_CLOSED,
+        quorum_met=True,
+        tied=tied,
+        has_winner=not tied,
+        winner_id=winning_id,
+    )
