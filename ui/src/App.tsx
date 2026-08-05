@@ -329,9 +329,6 @@ export default function Home() {
           <div>
             <p className="eyebrow">veCRV preference polls</p>
             <h1>Allocate your vote across the choices.</h1>
-            <p className="intro-copy">
-              Each wallet votes once with its veCRV balance at the poll’s snapshot block.
-            </p>
           </div>
           {FACTORY_ADDRESS && (
             <a
@@ -364,7 +361,6 @@ export default function Home() {
         ) : polls.length === 0 ? (
           <section className="empty-state">
             <h2>No polls yet.</h2>
-            <p>Approved creators have not published a poll.</p>
           </section>
         ) : (
           <div className="voting-layout">
@@ -525,10 +521,6 @@ export default function Home() {
             )}
           </div>
         )}
-
-        <p className="disclaimer">
-          A poll records voter preference. Protocol changes still go through Curve governance.
-        </p>
       </main>
     </div>
   );
