@@ -240,6 +240,18 @@ export default function Home() {
     return Number.isFinite(parsed) ? Math.round(parsed * 100) : 0;
   });
   const allocationTotal = allocationBps.reduce((sum, value) => sum + value, 0);
+  const allocationStatus =
+    allocationTotal === 10_000
+      ? "Ready to vote"
+      : allocationTotal < 10_000
+        ? `${((10_000 - allocationTotal) / 100).toFixed(2).replace(/\.00$/, "")}% remaining`
+        : `${((allocationTotal - 10_000) / 100).toFixed(2).replace(/\.00$/, "")}% over`;
+  const allocationStatusClass =
+    allocationTotal === 10_000
+      ? "total valid"
+      : allocationTotal > 10_000
+        ? "total over"
+        : "total";
   const status = selected?.phase ?? null;
 
   const submitVote = async () => {
@@ -459,8 +471,8 @@ export default function Home() {
                       <p className="eyebrow">Your allocation</p>
                       <h3>One vote, split any way you choose.</h3>
                     </div>
-                    <span className={allocationTotal === 10_000 ? "total valid" : "total"}>
-                      {(allocationTotal / 100).toFixed(2)} / 100%
+                    <span className={allocationStatusClass} aria-live="polite">
+                      {allocationStatus}
                     </span>
                   </div>
 
@@ -552,13 +564,15 @@ function Results({ poll }: { poll: Poll }) {
     [poll.scores],
   );
   const resultHeading =
-    poll.phase !== "closed"
-      ? "Voting in progress"
-      : !poll.quorumMet
-        ? "Quorum not met"
-        : poll.hasWinner
-          ? `Winner: ${poll.labels[poll.winnerId]}`
-          : "Result: tie";
+    poll.phase === "upcoming"
+      ? "Voting has not started"
+      : poll.phase === "active"
+        ? "Voting in progress"
+        : !poll.quorumMet
+          ? "Quorum not met"
+          : poll.hasWinner
+            ? `Winner: ${poll.labels[poll.winnerId]}`
+            : "Result: tie";
 
   return (
     <div className="results-section">
@@ -572,8 +586,12 @@ function Results({ poll }: { poll: Poll }) {
         {poll.labels.map((label, index) => {
           const score = poll.scores[index];
           const share = totalScore === 0n ? 0 : Number((score * 10_000n) / totalScore) / 100;
+          const isWinner = poll.hasWinner && poll.winnerId === index;
           return (
-            <div className="result-row" key={`${index}-${label}`}>
+            <div
+              className={isWinner ? "result-row winner" : "result-row"}
+              key={`${index}-${label}`}
+            >
               <div className="result-copy">
                 <span>{label}</span>
                 <span>{share.toFixed(2)}% · {veCrvScore(score)} veCRV</span>

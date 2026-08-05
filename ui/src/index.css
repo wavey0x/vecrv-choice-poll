@@ -119,6 +119,7 @@ main { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 56px 0 40
 .section-heading h3 { margin: 6px 0 0; font-size: 14px; font-weight: 500; }
 .total { color: var(--text-muted); font-size: 10px; }
 .total.valid { color: var(--green); }
+.total.over { color: var(--red); }
 
 .results-list { display: grid; gap: 15px; }
 .result-row { display: grid; gap: 7px; }
@@ -126,7 +127,8 @@ main { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 56px 0 40
 .result-copy span:last-child { color: var(--text-muted); text-align: right; }
 .result-track { height: 5px; overflow: hidden; background: #2b2b2b; }
 .result-track span { display: block; height: 100%; background: var(--text-secondary); transition: width 280ms ease; }
-.result-row:first-child .result-track span { background: #737373; }
+.result-row.winner .result-copy span:first-child { color: var(--green); }
+.result-row.winner .result-track span { background: var(--green); }
 
 .allocation-grid { border-top: 1px solid var(--border); }
 .allocation-row { min-height: 52px; display: flex; align-items: center; justify-content: space-between; gap: 20px; border-bottom: 1px solid var(--border); }
